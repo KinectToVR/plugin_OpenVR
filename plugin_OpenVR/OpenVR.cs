@@ -470,7 +470,7 @@ public class SteamVR : IServiceEndpoint
             };
 
             // Create the RPC channel
-            _channel = new Channel(target, ChannelCredentials.Insecure, channelOptions);
+            _channel = new Channel(target, port, ChannelCredentials.Insecure, channelOptions);
 
             // Create the RPC messaging service
             _service = new IK2DriverService.IK2DriverServiceClient(_channel);
