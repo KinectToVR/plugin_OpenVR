@@ -8,17 +8,20 @@ using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Amethyst.Classes;
 using Amethyst.Driver.API;
 using Amethyst.Plugins.Contract;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Grpc.Net.Client;
 using Valve.VR;
 using TrackerType = Amethyst.Plugins.Contract.TrackerType;
 
@@ -40,8 +43,10 @@ public static class ServiceData
 [ExportMetadata("Website", "https://github.com/KinectToVR/plugin_OpenVR")]
 public class SteamVR : IServiceEndpoint
 {
-    private static Channel _channel;
-    private static IK2DriverService.IK2DriverServiceClient _service;
+    private GrpcChannel _channel;
+    private SocketsHttpHandler _connectionHandler;
+    private IK2DriverService.IK2DriverServiceClient _service;
+
     private EvrInput.SteamEvrInput _evrInput;
     private uint _vrNotificationId;
 
@@ -344,7 +349,7 @@ public class SteamVR : IServiceEndpoint
 
             var call = _service?.SetTrackerStateVector();
             if (call is null) return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
-
+            
             foreach (var tracker in trackerBases)
                 await call.RequestStream.WriteAsync(
                     new ServiceRequest
@@ -432,6 +437,9 @@ public class SteamVR : IServiceEndpoint
     {
         try
         {
+            // Refresh the driver, just in case
+            K2ServerDriverRefresh();
+
             // Driver client sanity check: return empty or null if not valid
             if (OpenVR.System is null || _service is null ||
                 ServiceStatus != 0) return (-1, "SERVICE_INVALID", 0);
@@ -455,22 +463,28 @@ public class SteamVR : IServiceEndpoint
 
     #region Amethyst VRDriver Methods
 
-    public int InitAmethystServer(string target = "http://localhost", int port = 7135)
+    public int InitAmethystServer(string target = "http://localhost:7135")
     {
         try
         {
-            // Compose the channel arguments
-            var channelOptions = new List<ChannelOption>
+            // Create the handler
+            _connectionHandler = new SocketsHttpHandler
             {
-                new("grpc.keepalive_time_ms", 7200000),
-                new("grpc.keepalive_timeout_ms", 20000),
-                new("grpc.keepalive_permit_without_calls", 1),
-                new("grpc.http2.min_ping_interval_without_data_ms", 300000),
-                new("grpc.http2.min_time_between_pings_ms", 10000)
+                PooledConnectionIdleTimeout = Timeout.InfiniteTimeSpan,
+                KeepAlivePingDelay = TimeSpan.FromSeconds(60),
+                KeepAlivePingTimeout = TimeSpan.FromSeconds(30),
+                EnableMultipleHttp2Connections = true
+            };
+
+            // Compose the channel arguments
+            var channelOptions = new GrpcChannelOptions
+            {
+                Credentials = ChannelCredentials.Insecure,
+                HttpHandler = _connectionHandler
             };
 
             // Create the RPC channel
-            _channel = new Channel(target, port, ChannelCredentials.Insecure, channelOptions);
+            _channel = GrpcChannel.ForAddress(target, channelOptions);
 
             // Create the RPC messaging service
             _service = new IK2DriverService.IK2DriverServiceClient(_channel);
@@ -507,7 +521,7 @@ public class SteamVR : IServiceEndpoint
         }
     }
 
-    public async Task<(int ServerStatus, int APIStatus)> CheckK2ServerStatus()
+    public (int ServerStatus, int APIStatus) CheckK2ServerStatus()
     {
         // Don't check if already ok
         if (ServerDriverPresent) return (0, (int)StatusCode.OK);
@@ -516,43 +530,12 @@ public class SteamVR : IServiceEndpoint
         {
             /* Initialize the port */
             Host.Log("Initializing the server IPC...", LogSeverity.Info);
-            ;
             var initCode = InitAmethystServer();
-            var serverStatus = -1;
 
             Host.Log($"Server IPC initialization {(initCode == 0 ? "succeed" : "failed")}, exit code: {initCode}",
                 initCode == 0 ? LogSeverity.Info : LogSeverity.Error);
-
-            /* Connection test and display ping */
-            // We may wait a bit for it though...
-            // ReSharper disable once InvertIf
-            if (initCode == 0)
-            {
-                Host.Log("Testing the connection...", LogSeverity.Info);
-
-                for (var i = 0; i < 3; i++)
-                {
-                    Host.Log($"Starting the test no {i + 1}...", LogSeverity.Info);
-                    serverStatus = await TestK2ServerConnection();
-
-                    // Not direct assignment since it's only a one-way check
-                    if (serverStatus == 0)
-                        ServerDriverPresent = true;
-
-                    else
-                        Host.Log("Server status check failed! " +
-                                 $"Code: {serverStatus}, ", LogSeverity.Warning);
-                }
-            }
-
-            return initCode == 0
-                // If the API is ok
-                ? serverStatus == 0
-                    // If the server is/isn't ok
-                    ? (1, serverStatus)
-                    : (-1, serverStatus)
-                // If the API is not ok
-                : (initCode, (int)StatusCode.Unknown);
+            
+            return (initCode, (int)StatusCode.OK);
         }
         catch (Exception e)
         {
@@ -574,9 +557,9 @@ public class SteamVR : IServiceEndpoint
          */
     }
 
-    public async void K2ServerDriverRefresh()
+    public void K2ServerDriverRefresh()
     {
-        (ServiceStatus, ServerDriverRpcStatus) = await CheckK2ServerStatus();
+        (ServiceStatus, ServerDriverRpcStatus) = CheckK2ServerStatus();
         ServerDriverPresent = false; // Assume fail
         ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/WTF", ServiceData.Guid);
         //"COULD NOT CHECK STATUS (\u15dc\u02ec\u15dc)\nE_WTF\nSomething's fucked a really big time.";
