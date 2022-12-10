@@ -14,8 +14,8 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
+using Windows.Data.Json;
 using Amethyst.Driver.API;
 using Amethyst.Plugins.Contract;
 using Google.Protobuf.WellKnownTypes;
@@ -25,15 +25,9 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
 using plugin_OpenVR.Utils;
 using Valve.VR;
-using GridLength = ABI.Microsoft.UI.Xaml.GridLength;
 using TrackerType = Amethyst.Plugins.Contract.TrackerType;
-using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
-using Windows.Data.Json;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -53,6 +47,14 @@ public static class ServiceData
 [ExportMetadata("Website", "https://github.com/KinectToVR/plugin_OpenVR")]
 public class SteamVR : IServiceEndpoint
 {
+    private GrpcChannel _channel;
+    private SocketsHttpHandler _connectionHandler;
+
+    private EvrInput.SteamEvrInput _evrInput;
+    private IK2DriverService.IK2DriverServiceClient _service;
+    private uint _vrNotificationId;
+
+    private ulong _vrOverlayHandle = OpenVR.k_ulOverlayHandleInvalid;
     public static bool Initialized { get; private set; }
     public static object InitLock { get; } = new();
 
@@ -61,15 +63,6 @@ public class SteamVR : IServiceEndpoint
     private Button ReManifestButton { get; set; }
     private Button ReRegisterButton { get; set; }
     private Flyout ActionFailedFlyout { get; set; }
-
-    private GrpcChannel _channel;
-    private SocketsHttpHandler _connectionHandler;
-    private IK2DriverService.IK2DriverServiceClient _service;
-
-    private EvrInput.SteamEvrInput _evrInput;
-    private uint _vrNotificationId;
-
-    private ulong _vrOverlayHandle = OpenVR.k_ulOverlayHandleInvalid;
 
     private Vector3 VrPlayspaceTranslation =>
         OpenVR.System.GetRawZeroPoseToStandingAbsoluteTrackingPose().GetPosition();
@@ -118,7 +111,7 @@ public class SteamVR : IServiceEndpoint
         SkeletonFlipToggled = (_, _) => { },
         TrackingFreezeToggled = (_, _) => { }
     };
-    
+
     public bool AutoStartAmethyst
     {
         get => OpenVR.Applications?.GetApplicationAutoLaunch("K2VR.Amethyst") ?? false;
@@ -553,8 +546,8 @@ public class SteamVR : IServiceEndpoint
                 Children = { ReManifestButton, ReRegisterButton },
                 ColumnDefinitions =
                 {
-                    new ColumnDefinition { Width = new Microsoft.UI.Xaml.GridLength(1, GridUnitType.Star) },
-                    new ColumnDefinition { Width = new Microsoft.UI.Xaml.GridLength(1, GridUnitType.Star) }
+                    new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+                    new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
                 }
             }
         };
@@ -580,6 +573,9 @@ public class SteamVR : IServiceEndpoint
 
         // Install the manifest
         InstallVrApplicationManifest();
+
+        // Update bindings
+        UpdateBindingTexts();
 
         // Startup input actions
         var serviceStatus = 0;
@@ -843,6 +839,9 @@ public class SteamVR : IServiceEndpoint
     {
         try
         {
+            // Update bindings
+            UpdateBindingTexts();
+
             // Refresh the driver, just in case
             K2ServerDriverRefresh();
 
@@ -877,7 +876,7 @@ public class SteamVR : IServiceEndpoint
 
     #region Amethyst VRDriver Methods
 
-    public int InitAmethystServer(string target = "http://localhost:7135")
+    private int InitAmethystServer(string target = "http://localhost:7135")
     {
         try
         {
@@ -911,11 +910,11 @@ public class SteamVR : IServiceEndpoint
         return 0;
     }
 
-    public (int ServerStatus, int APIStatus) CheckK2ServerStatus()
+    private (int ServerStatus, int APIStatus) CheckK2ServerStatus()
     {
         // Don't check if OpenVR failed
         if (ServiceStatus == 1) return (1, (int)StatusCode.Aborted);
-        
+
         try
         {
             /* Initialize the port */
@@ -928,10 +927,10 @@ public class SteamVR : IServiceEndpoint
             try
             {
                 // Driver client sanity check: return empty or null if not valid
-                if (!Initialized || OpenVR.System is null) 
+                if (!Initialized || OpenVR.System is null)
                     return (1, (int)StatusCode.Unknown);
 
-                if (_channel is null || _service is null) 
+                if (_channel is null || _service is null)
                     return (-1, (int)StatusCode.Unknown);
 
                 // Grab the current time and send the message
@@ -973,7 +972,7 @@ public class SteamVR : IServiceEndpoint
          */
     }
 
-    public void K2ServerDriverRefresh()
+    private void K2ServerDriverRefresh()
     {
         (ServiceStatus, ServerDriverRpcStatus) = CheckK2ServerStatus();
         ServerDriverPresent = false; // Assume fail
@@ -1050,39 +1049,44 @@ public class SteamVR : IServiceEndpoint
 
     #region OpenVR Interfacing Methods
 
-    public bool OpenVrStartup()
+    private bool OpenVrStartup()
     {
-        Host.Log("Attempting connection to VRSystem... ", LogSeverity.Info);
-
-        try
+        // Only re-init VR if needed
+        if (OpenVR.System is null)
         {
-            Host.Log("Creating a cancellation token...", LogSeverity.Info);
-            using var cancellationTokenSource = new CancellationTokenSource();
-            cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(7));
+            Host.Log("Attempting connection to VRSystem... ", LogSeverity.Info);
 
-            Host.Log("Waiting for the VR System to initialize...", LogSeverity.Info);
-            var eError = EVRInitError.None;
-
-            OpenVR.Init(ref eError, EVRApplicationType.VRApplication_Overlay);
-            Initialized = true; // vrClient dll loaded
-
-            Host.Log("The VRSystem finished initializing...", LogSeverity.Info);
-            if (eError != EVRInitError.None)
+            try
             {
-                Host.Log($"IVRSystem could not be initialized: EVRInitError Code {eError}", LogSeverity.Error);
-                return false; // Catastrophic failure!
+                Host.Log("Creating a cancellation token...", LogSeverity.Info);
+                using var cancellationTokenSource = new CancellationTokenSource();
+                cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(7));
+
+                Host.Log("Waiting for the VR System to initialize...", LogSeverity.Info);
+                var eError = EVRInitError.None;
+
+                OpenVR.Init(ref eError, EVRApplicationType.VRApplication_Overlay);
+                Initialized = true; // vrClient dll loaded
+
+                Host.Log("The VRSystem finished initializing...", LogSeverity.Info);
+                if (eError != EVRInitError.None)
+                {
+                    Host.Log($"IVRSystem could not be initialized: EVRInitError Code {eError}", LogSeverity.Error);
+                    return false; // Catastrophic failure!
+                }
             }
-        }
-        catch (Exception e)
-        {
-            Host.Log($"The VR System took too long to initialize ({e.Message}), giving up!", LogSeverity.Error);
-            return false; // Took too long to initialize, abort!
+            catch (Exception e)
+            {
+                Host.Log($"The VR System failed to initialize ({e.Message}), giving up!", LogSeverity.Error);
+                return false; // Took too long to initialize, abort!
+            }
         }
 
         // We're good to go!
         Host.Log("Looks like the VR System is ready to go!", LogSeverity.Info);
 
         // Initialize the overlay
+        OpenVR.Overlay.DestroyOverlay(_vrOverlayHandle); // Destroy the overlay in case it somehow exists
         OpenVR.Overlay.CreateOverlay("k2vr.amethyst.desktop", "Amethyst", ref _vrOverlayHandle);
 
         Host.Log($"VR Playspace translation: \n{VrPlayspaceTranslation}", LogSeverity.Info);
@@ -1090,7 +1094,7 @@ public class SteamVR : IServiceEndpoint
         return true; // OK
     }
 
-    public int InstallVrApplicationManifest()
+    private int InstallVrApplicationManifest()
     {
         if (!Initialized || OpenVR.Applications is null) return 0; // Sanity check
         if (OpenVR.Applications.IsApplicationInstalled("K2VR.Amethyst"))
@@ -1122,7 +1126,7 @@ public class SteamVR : IServiceEndpoint
         return -2;
     }
 
-    public bool EvrActionsStartup()
+    private bool EvrActionsStartup()
     {
         Host.Log("Attempting to set up EVR Input Actions...", LogSeverity.Info);
 
@@ -1209,6 +1213,83 @@ public class SteamVR : IServiceEndpoint
 
             OpenVR.System.AcknowledgeQuit_Exiting();
             Host.RequestExit("OpenVR shutting down!", ServiceData.Guid);
+        }
+    }
+
+    private void UpdateBindingTexts()
+    {
+        if (!Initialized || OpenVR.System is null) return; // Sanity check
+
+        // Freeze
+        {
+            var header = Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Header", ServiceData.Guid);
+
+            // Change the tip depending on the currently connected controllers
+            var controllerModel = new StringBuilder(1024);
+            var error = ETrackedPropertyError.TrackedProp_Success;
+
+            OpenVR.System.GetStringTrackedDeviceProperty(
+                OpenVR.System.GetTrackedDeviceIndexForControllerRole(
+                    ETrackedControllerRole.LeftHand),
+                ETrackedDeviceProperty.Prop_ModelNumber_String,
+                controllerModel, 1024, ref error);
+
+            if (controllerModel.ToString().Contains("knuckles", StringComparison.OrdinalIgnoreCase) ||
+                controllerModel.ToString().Contains("index", StringComparison.OrdinalIgnoreCase))
+                header = header.Replace("{0}",
+                    Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Buttons/Index", ServiceData.Guid));
+
+            else if (controllerModel.ToString().Contains("vive", StringComparison.OrdinalIgnoreCase))
+                header = header.Replace("{0}",
+                    Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Buttons/VIVE", ServiceData.Guid));
+
+            else if (controllerModel.ToString().Contains("mr", StringComparison.OrdinalIgnoreCase))
+                header = header.Replace("{0}",
+                    Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Buttons/WMR", ServiceData.Guid));
+
+            else
+                header = header.Replace("{0}",
+                    Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Buttons/Oculus", ServiceData.Guid));
+
+            ControllerInputActions.TrackingFreezeActionTitleString = header;
+            ControllerInputActions.TrackingFreezeActionContentString =
+                Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Footer", ServiceData.Guid);
+        }
+
+        // Flip
+        {
+            var header = Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Header", ServiceData.Guid);
+
+            // Change the tip depending on the currently connected controllers
+            var controllerModel = new StringBuilder(1024);
+            var error = ETrackedPropertyError.TrackedProp_Success;
+
+            OpenVR.System.GetStringTrackedDeviceProperty(
+                OpenVR.System.GetTrackedDeviceIndexForControllerRole(
+                    ETrackedControllerRole.LeftHand),
+                ETrackedDeviceProperty.Prop_ModelNumber_String,
+                controllerModel, 1024, ref error);
+
+            if (controllerModel.ToString().Contains("knuckles", StringComparison.OrdinalIgnoreCase) ||
+                controllerModel.ToString().Contains("index", StringComparison.OrdinalIgnoreCase))
+                header = header.Replace("{0}",
+                    Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Buttons/Index", ServiceData.Guid));
+
+            else if (controllerModel.ToString().Contains("vive", StringComparison.OrdinalIgnoreCase))
+                header = header.Replace("{0}",
+                    Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Buttons/VIVE", ServiceData.Guid));
+
+            else if (controllerModel.ToString().Contains("mr", StringComparison.OrdinalIgnoreCase))
+                header = header.Replace("{0}",
+                    Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Buttons/WMR", ServiceData.Guid));
+
+            else
+                header = header.Replace("{0}",
+                    Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Buttons/Oculus", ServiceData.Guid));
+
+            ControllerInputActions.SkeletonFlipActionTitleString = header;
+            ControllerInputActions.SkeletonFlipActionContentString =
+                Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Footer", ServiceData.Guid);
         }
     }
 
