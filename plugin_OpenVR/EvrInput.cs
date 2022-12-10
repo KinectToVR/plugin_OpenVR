@@ -1,13 +1,11 @@
-﻿using System.ComponentModel.Composition;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Amethyst.Plugins.Contract;
-using Microsoft.Extensions.Logging;
 using Valve.VR;
 
-namespace Amethyst.Classes;
+namespace plugin_OpenVR;
 
 public static class EvrInput
 {
@@ -38,9 +36,15 @@ public static class EvrInput
             Host = host;
         }
 
-        private (uint Left, uint Right) VrControllerIndexes => (
-            OpenVR.System.GetTrackedDeviceIndexForControllerRole(ETrackedControllerRole.LeftHand),
-            OpenVR.System.GetTrackedDeviceIndexForControllerRole(ETrackedControllerRole.RightHand)
+        private static (uint Left, uint Right) VrControllerIndexes => (
+            SteamVR.Initialized
+                ? OpenVR.System?.GetTrackedDeviceIndexForControllerRole(ETrackedControllerRole.LeftHand) ??
+                  OpenVR.k_unTrackedDeviceIndexInvalid
+                : OpenVR.k_unTrackedDeviceIndexInvalid,
+            SteamVR.Initialized
+                ? OpenVR.System?.GetTrackedDeviceIndexForControllerRole(ETrackedControllerRole.RightHand) ??
+                  OpenVR.k_unTrackedDeviceIndexInvalid
+                : OpenVR.k_unTrackedDeviceIndexInvalid
         );
 
         // Action manifest path
@@ -99,6 +103,8 @@ public static class EvrInput
         // Preferred type is (vr::VRApplication_Scene)
         public bool InitInputActions()
         {
+            if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
+
             // Find the absolute path of manifest
             var absoluteManifestPath =
                 Path.Join(GetProgramLocation().DirectoryName, MActionManifestPath);
@@ -208,6 +214,8 @@ public static class EvrInput
         // Update Left Joystick Action
         private bool GetLeftJoystickState()
         {
+            if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
+
             // Update the action and grab data
             var error = OpenVR.Input.GetAnalogActionData(
                 _mLeftJoystickHandler,
@@ -225,6 +233,8 @@ public static class EvrInput
         // Update Right Joystick Action
         private bool GetRightJoystickState()
         {
+            if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
+
             // Update the action and grab data
             var error = OpenVR.Input.GetAnalogActionData(
                 _mRightJoystickHandler,
@@ -242,6 +252,8 @@ public static class EvrInput
         // Update Confirm And Save Action
         private bool GetConfirmAndSaveState()
         {
+            if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
+
             // Update the action and grab data
             var error = OpenVR.Input.GetDigitalActionData(
                 _mConfirmAndSaveHandler,
@@ -259,6 +271,8 @@ public static class EvrInput
         // Update Mode Swap Action
         private bool GetModeSwapState()
         {
+            if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
+
             // Update the action and grab data
             var error = OpenVR.Input.GetDigitalActionData(
                 _mModeSwapHandler,
@@ -276,6 +290,8 @@ public static class EvrInput
         // Update Fine Tune Action
         private bool GetFineTuneState()
         {
+            if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
+
             // Update the action and grab data
             var error = OpenVR.Input.GetDigitalActionData(
                 _mFineTuneHandler,
@@ -293,6 +309,8 @@ public static class EvrInput
         // Update Tracker Freeze Action
         private bool GetTrackerFreezeState()
         {
+            if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
+
             // Update the action and grab data
             var error = OpenVR.Input.GetDigitalActionData(
                 _mTrackerFreezeHandler,
@@ -310,6 +328,8 @@ public static class EvrInput
         // Update Tracker Freeze Action
         private bool GetFlipToggleState()
         {
+            if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
+
             // Update the action and grab data
             var error = OpenVR.Input.GetDigitalActionData(
                 _mFlipToggleHandler,
@@ -324,9 +344,10 @@ public static class EvrInput
             return false;
         }
 
-
         public bool UpdateActionStates()
         {
+            if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
+
             /**********************************************/
             // Check if VR controllers are valid
             /**********************************************/
