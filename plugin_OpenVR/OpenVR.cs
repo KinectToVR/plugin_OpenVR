@@ -34,15 +34,9 @@ using TrackerType = Amethyst.Plugins.Contract.TrackerType;
 
 namespace plugin_OpenVR;
 
-public static class ServiceData
-{
-    public const string Name = "SteamVR";
-    public const string Guid = "K2VRTEAM-AME2-APII-SNDP-SENDPTOPENVR";
-}
-
 [Export(typeof(IServiceEndpoint))]
-[ExportMetadata("Name", ServiceData.Name)]
-[ExportMetadata("Guid", ServiceData.Guid)]
+[ExportMetadata("Name", "SteamVR")]
+[ExportMetadata("Guid", "K2VRTEAM-AME2-APII-SNDP-SENDPTOPENVR")]
 [ExportMetadata("Publisher", "K2VR Team")]
 [ExportMetadata("Website", "https://github.com/KinectToVR/plugin_OpenVR")]
 public class SteamVR : IServiceEndpoint
@@ -188,14 +182,14 @@ public class SteamVR : IServiceEndpoint
 
         ReManifestButton = new Button
         {
-            Content = Host.RequestLocalizedString("/SettingsPage/Buttons/ReManifest", ServiceData.Guid),
+            Content = Host.RequestLocalizedString("/SettingsPage/Buttons/ReManifest"),
             Height = 40, HorizontalAlignment = HorizontalAlignment.Stretch,
             Margin = new Thickness { Right = 6 }, FontSize = 16, FontWeight = FontWeights.SemiBold
         };
 
         ReRegisterButton = new Button
         {
-            Content = Host.RequestLocalizedString("/SettingsPage/Buttons/ReRegister", ServiceData.Guid),
+            Content = Host.RequestLocalizedString("/SettingsPage/Buttons/ReRegister"),
             Height = 40, HorizontalAlignment = HorizontalAlignment.Stretch,
             Margin = new Thickness { Left = 6 }, FontSize = 16, FontWeight = FontWeights.SemiBold
         };
@@ -210,7 +204,7 @@ public class SteamVR : IServiceEndpoint
                 {
                     ActionFailedFlyout.Content = new TextBlock
                     {
-                        Text = Host.RequestLocalizedString("/SettingsPage/ReManifest/Error/NotFound", ServiceData.Guid)
+                        Text = Host.RequestLocalizedString("/SettingsPage/ReManifest/Error/NotFound")
                     };
 
                     ActionFailedFlyout.ShowAt(ReManifestButton, new FlyoutShowOptions
@@ -225,7 +219,7 @@ public class SteamVR : IServiceEndpoint
                 {
                     ActionFailedFlyout.Content = new TextBlock
                     {
-                        Text = Host.RequestLocalizedString("/SettingsPage/ReManifest/Error/Other", ServiceData.Guid)
+                        Text = Host.RequestLocalizedString("/SettingsPage/ReManifest/Error/Other")
                     };
 
                     ActionFailedFlyout.ShowAt(ReManifestButton, new FlyoutShowOptions
@@ -255,7 +249,7 @@ public class SteamVR : IServiceEndpoint
             {
                 // Critical, cry about it
                 await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
-                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/SteamVRNotFound", ServiceData.Guid),
+                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/SteamVRNotFound"),
                     "", "");
                 return;
             }
@@ -269,7 +263,7 @@ public class SteamVR : IServiceEndpoint
             {
                 // Critical, cry about it
                 await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
-                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/OpenVRPathsError", ServiceData.Guid),
+                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/OpenVRPathsError"),
                     "", "");
                 return;
             }
@@ -330,7 +324,7 @@ public class SteamVR : IServiceEndpoint
             if (string.IsNullOrEmpty(localAmethystDriverPath))
             {
                 await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
-                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/DriverNotFound", ServiceData.Guid),
+                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/DriverNotFound"),
                     "", "");
                 return;
             }
@@ -342,11 +336,9 @@ public class SteamVR : IServiceEndpoint
                     proc => proc.ProcessName is "vrserver" or "vrmonitor") != null)
             {
                 if (await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
-                        Host?.RequestLocalizedString("/CrashHandler/ReRegister/KillSteamVR/Content", ServiceData.Guid),
-                        Host?.RequestLocalizedString("/CrashHandler/ReRegister/KillSteamVR/PrimaryButton",
-                            ServiceData.Guid),
-                        Host?.RequestLocalizedString("/CrashHandler/ReRegister/KillSteamVR/SecondaryButton",
-                            ServiceData.Guid)))
+                        Host?.RequestLocalizedString("/CrashHandler/ReRegister/KillSteamVR/Content"),
+                        Host?.RequestLocalizedString("/CrashHandler/ReRegister/KillSteamVR/PrimaryButton"),
+                        Host?.RequestLocalizedString("/CrashHandler/ReRegister/KillSteamVR/SecondaryButton")))
                     await Task.Factory.StartNew(() =>
                     {
                         Shutdown(); // Exit not to be killed
@@ -374,12 +366,9 @@ public class SteamVR : IServiceEndpoint
 
             // Remove (or delete) the existing K2EX Drivers
             if (isDriverK2Present && await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
-                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/ExistingDrivers/Content_K2EX",
-                        ServiceData.Guid),
-                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/ExistingDrivers/PrimaryButton_K2EX",
-                        ServiceData.Guid),
-                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/ExistingDrivers/SecondaryButton_K2EX",
-                        ServiceData.Guid)))
+                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/ExistingDrivers/Content_K2EX"),
+                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/ExistingDrivers/PrimaryButton_K2EX"),
+                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/ExistingDrivers/SecondaryButton_K2EX")))
                 return;
 
             // Try-Catch it
@@ -406,8 +395,7 @@ public class SteamVR : IServiceEndpoint
             {
                 // Critical, cry about it
                 await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
-                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/FatalRemoveException_K2EX",
-                        ServiceData.Guid),
+                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/FatalRemoveException_K2EX"),
                     "", "");
                 return;
             }
@@ -438,12 +426,9 @@ public class SteamVR : IServiceEndpoint
             // Remove (or delete) the existing Amethyst Drivers
             if (isAmethystDriverPresent && !await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton,
                     Host,
-                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/ExistingDrivers/Content",
-                        ServiceData.Guid),
-                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/ExistingDrivers/PrimaryButton",
-                        ServiceData.Guid),
-                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/ExistingDrivers/SecondaryButton",
-                        ServiceData.Guid)))
+                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/ExistingDrivers/Content"),
+                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/ExistingDrivers/PrimaryButton"),
+                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/ExistingDrivers/SecondaryButton")))
                 return;
 
             // Try-Catch it
@@ -471,8 +456,7 @@ public class SteamVR : IServiceEndpoint
             {
                 // Critical, cry about it
                 await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
-                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/FatalRemoveException",
-                        ServiceData.Guid),
+                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/FatalRemoveException"),
                     "", "");
                 return;
             }
@@ -492,8 +476,7 @@ public class SteamVR : IServiceEndpoint
                     if (!openVrPathsCheck.external_drivers.Contains(localAmethystDriverPath))
                     {
                         await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
-                            Host?.RequestLocalizedString("/CrashHandler/ReRegister/OpenVRPathsWriteError",
-                                ServiceData.Guid),
+                            Host?.RequestLocalizedString("/CrashHandler/ReRegister/OpenVRPathsWriteError"),
                             "", "");
                         return;
                     }
@@ -502,8 +485,7 @@ public class SteamVR : IServiceEndpoint
                 {
                     // Critical, cry about it
                     await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
-                        Host?.RequestLocalizedString("/CrashHandler/ReRegister/FatalRegisterException",
-                            ServiceData.Guid),
+                        Host?.RequestLocalizedString("/CrashHandler/ReRegister/FatalRegisterException"),
                         "", "");
                     return;
                 }
@@ -534,8 +516,7 @@ public class SteamVR : IServiceEndpoint
 
             // Winning it!
             await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
-                Host?.RequestLocalizedString("/CrashHandler/ReRegister/Finished",
-                    ServiceData.Guid),
+                Host?.RequestLocalizedString("/CrashHandler/ReRegister/Finished"),
                 "", "");
         };
 
@@ -918,7 +899,7 @@ public class SteamVR : IServiceEndpoint
         try
         {
             /* Initialize the port */
-            Host.Log("Initializing the server IPC...", LogSeverity.Info);
+            Host.Log("Initializing the server IPC...");
             var initCode = InitAmethystServer();
 
             Host.Log($"Server IPC initialization {(initCode == 0 ? "succeed" : "failed")}, exit code: {initCode}",
@@ -976,13 +957,13 @@ public class SteamVR : IServiceEndpoint
     {
         (ServiceStatus, ServerDriverRpcStatus) = CheckK2ServerStatus();
         ServerDriverPresent = false; // Assume fail
-        ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/WTF", ServiceData.Guid);
+        ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/WTF");
         //"COULD NOT CHECK STATUS (\u15dc\u02ec\u15dc)\nE_WTF\nSomething's fucked a really big time.";
 
         switch (ServiceStatus)
         {
             case 0:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/Success", ServiceData.Guid)
+                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/Success")
                     .Replace("{0}", ServiceStatus.ToString())
                     .Replace("{1}", ServerDriverRpcStatus.ToString());
                 //"Success! (Code 1)\nI_OK\nEverything's good!";
@@ -991,55 +972,55 @@ public class SteamVR : IServiceEndpoint
                 break; // Change to success
 
             case 1:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/OpenVRError", ServiceData.Guid)
+                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/OpenVRError")
                     .Replace("{0}", ServiceStatus.ToString())
                     .Replace("{1}", ServerDriverRpcStatus.ToString());
                 //"OPENVR INIT ERROR (Code {0}:{1})\nE_OVRINIT_ERROR\nCheck if SteamVR is running, and your VR headset is connected properly to it.";
                 break;
 
             case 2:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/IVRInputError", ServiceData.Guid)
+                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/IVRInputError")
                     .Replace("{0}", ServiceStatus.ToString())
                     .Replace("{1}", ServerDriverRpcStatus.ToString());
                 //"OPENVR INIT ERROR (Code {0}:{1})\nE_OVRINIT_ERROR\nCheck if SteamVR is running, and your VR headset is connected properly to it.";
                 break;
 
             case -1:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/ConnectionError", ServiceData.Guid)
+                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/ConnectionError")
                     .Replace("{0}", ServiceStatus.ToString())
                     .Replace("{1}", ServerDriverRpcStatus.ToString());
                 //"SERVER CONNECTION ERROR (Code -1:{0})\nE_CONNECTION_ERROR\nCheck SteamVR add-ons (NOT overlays) and enable Amethyst.";
                 break;
 
             case -10:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/Exception", ServiceData.Guid)
+                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/Exception")
                     .Replace("{0}", ServiceStatus.ToString())
                     .Replace("{1}", ServerDriverRpcStatus.ToString());
                 //"EXCEPTION WHILE CHECKING (Code -10)\nE_EXCEPTION_WHILE_CHECKING\nCheck SteamVR add-ons (NOT overlays) and enable Amethyst.";
                 break;
 
             case -2:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/RPCChannelFailure", ServiceData.Guid)
+                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/RPCChannelFailure")
                     .Replace("{0}", ServiceStatus.ToString())
                     .Replace("{1}", ServerDriverRpcStatus.ToString());
                 //"RPC CHANNEL FAILURE (Code -2:{0})\nE_RPC_CHAN_FAILURE\nCould not connect to localhost:7135, is it already taken?";
                 break;
 
             case -3:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/RPCStubFailure", ServiceData.Guid)
+                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/RPCStubFailure")
                     .Replace("{0}", ServiceStatus.ToString())
                     .Replace("{1}", ServerDriverRpcStatus.ToString());
                 //"RPC/API STUB FAILURE (Code -3:{0})\nE_RPC_STUB_FAILURE\nCould not derive IK2DriverService! Is the protocol valid?";
                 break;
 
             case 10:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/ServerFailure", ServiceData.Guid)
+                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/ServerFailure")
                     .Replace("{0}", ServiceStatus.ToString());
                 //"FATAL SERVER FAILURE (Code 10)\nE_FATAL_SERVER_FAILURE\nPlease restart, check logs and write to us on Discord.";
                 break;
 
             default:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/WTF", ServiceData.Guid);
+                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/WTF");
                 //"COULD NOT CHECK STATUS (\u15dc\u02ec\u15dc)\nE_WTF\nSomething's fucked a really big time.";
                 break;
         }
@@ -1054,21 +1035,21 @@ public class SteamVR : IServiceEndpoint
         // Only re-init VR if needed
         if (OpenVR.System is null)
         {
-            Host.Log("Attempting connection to VRSystem... ", LogSeverity.Info);
+            Host.Log("Attempting connection to VRSystem... ");
 
             try
             {
-                Host.Log("Creating a cancellation token...", LogSeverity.Info);
+                Host.Log("Creating a cancellation token...");
                 using var cancellationTokenSource = new CancellationTokenSource();
                 cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(7));
 
-                Host.Log("Waiting for the VR System to initialize...", LogSeverity.Info);
+                Host.Log("Waiting for the VR System to initialize...");
                 var eError = EVRInitError.None;
 
                 OpenVR.Init(ref eError, EVRApplicationType.VRApplication_Overlay);
                 Initialized = true; // vrClient dll loaded
 
-                Host.Log("The VRSystem finished initializing...", LogSeverity.Info);
+                Host.Log("The VRSystem finished initializing...");
                 if (eError != EVRInitError.None)
                 {
                     Host.Log($"IVRSystem could not be initialized: EVRInitError Code {eError}", LogSeverity.Error);
@@ -1083,14 +1064,14 @@ public class SteamVR : IServiceEndpoint
         }
 
         // We're good to go!
-        Host.Log("Looks like the VR System is ready to go!", LogSeverity.Info);
+        Host.Log("Looks like the VR System is ready to go!");
 
         // Initialize the overlay
         OpenVR.Overlay.DestroyOverlay(_vrOverlayHandle); // Destroy the overlay in case it somehow exists
         OpenVR.Overlay.CreateOverlay("k2vr.amethyst.desktop", "Amethyst", ref _vrOverlayHandle);
 
-        Host.Log($"VR Playspace translation: \n{VrPlayspaceTranslation}", LogSeverity.Info);
-        Host.Log($"VR Playspace orientation: \n{VrPlayspaceOrientationQuaternion}", LogSeverity.Info);
+        Host.Log($"VR Playspace translation: \n{VrPlayspaceTranslation}");
+        Host.Log($"VR Playspace orientation: \n{VrPlayspaceOrientationQuaternion}");
         return true; // OK
     }
 
@@ -1099,7 +1080,7 @@ public class SteamVR : IServiceEndpoint
         if (!Initialized || OpenVR.Applications is null) return 0; // Sanity check
         if (OpenVR.Applications.IsApplicationInstalled("K2VR.Amethyst"))
         {
-            Host.Log("Amethyst manifest is already installed", LogSeverity.Info);
+            Host.Log("Amethyst manifest is already installed");
             return 0;
         }
 
@@ -1115,8 +1096,7 @@ public class SteamVR : IServiceEndpoint
             }
 
             Host.Log("Amethyst manifest installed at: " +
-                     $"{Path.Join(Assembly.GetAssembly(GetType())!.Location, "Amethyst.vrmanifest")}",
-                LogSeverity.Info);
+                     $"{Path.Join(Assembly.GetAssembly(GetType())!.Location, "Amethyst.vrmanifest")}");
             return 0;
         }
 
@@ -1128,7 +1108,7 @@ public class SteamVR : IServiceEndpoint
 
     private bool EvrActionsStartup()
     {
-        Host.Log("Attempting to set up EVR Input Actions...", LogSeverity.Info);
+        Host.Log("Attempting to set up EVR Input Actions...");
 
         if (!_evrInput.InitInputActions())
         {
@@ -1139,7 +1119,7 @@ public class SteamVR : IServiceEndpoint
             return false;
         }
 
-        Host.Log("EVR Input Actions set up OK", LogSeverity.Info);
+        Host.Log("EVR Input Actions set up OK");
         return true;
     }
 
@@ -1161,7 +1141,7 @@ public class SteamVR : IServiceEndpoint
         // Only if the state has changed from 1 to 0: button was clicked
         if (!_evrInput.TrackerFreezeActionData.bState && bFreezeState)
         {
-            Host.Log("[Input Actions] Input: Tracking freeze toggled", LogSeverity.Info);
+            Host.Log("[Input Actions] Input: Tracking freeze toggled");
             ControllerInputActions.TrackingFreezeToggled?.Invoke(this, EventArgs.Empty);
         }
 
@@ -1169,7 +1149,7 @@ public class SteamVR : IServiceEndpoint
         // Only if the state has changed from 1 to 0: button was clicked
         if (!_evrInput.TrackerFlipToggleData.bState && bFlipToggleState)
         {
-            Host.Log("[Input Actions] Input: Flip toggled", LogSeverity.Info);
+            Host.Log("[Input Actions] Input: Flip toggled");
             ControllerInputActions.SkeletonFlipToggled?.Invoke(this, EventArgs.Empty);
         }
 
@@ -1209,10 +1189,10 @@ public class SteamVR : IServiceEndpoint
         {
             if (vrEvent.eventType != (uint)EVREventType.VREvent_Quit) continue;
 
-            Host.Log("VREvent_Quit has been called, requesting more time for handling the exit...", LogSeverity.Info);
+            Host.Log("VREvent_Quit has been called, requesting more time for handling the exit...");
 
             OpenVR.System.AcknowledgeQuit_Exiting();
-            Host.RequestExit("OpenVR shutting down!", ServiceData.Guid);
+            Host.RequestExit("OpenVR shutting down!");
         }
     }
 
@@ -1222,7 +1202,7 @@ public class SteamVR : IServiceEndpoint
 
         // Freeze
         {
-            var header = Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Header", ServiceData.Guid);
+            var header = Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Header");
 
             // Change the tip depending on the currently connected controllers
             var controllerModel = new StringBuilder(1024);
@@ -1237,28 +1217,28 @@ public class SteamVR : IServiceEndpoint
             if (controllerModel.ToString().Contains("knuckles", StringComparison.OrdinalIgnoreCase) ||
                 controllerModel.ToString().Contains("index", StringComparison.OrdinalIgnoreCase))
                 header = header.Replace("{0}",
-                    Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Buttons/Index", ServiceData.Guid));
+                    Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Buttons/Index"));
 
             else if (controllerModel.ToString().Contains("vive", StringComparison.OrdinalIgnoreCase))
                 header = header.Replace("{0}",
-                    Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Buttons/VIVE", ServiceData.Guid));
+                    Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Buttons/VIVE"));
 
             else if (controllerModel.ToString().Contains("mr", StringComparison.OrdinalIgnoreCase))
                 header = header.Replace("{0}",
-                    Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Buttons/WMR", ServiceData.Guid));
+                    Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Buttons/WMR"));
 
             else
                 header = header.Replace("{0}",
-                    Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Buttons/Oculus", ServiceData.Guid));
+                    Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Buttons/Oculus"));
 
             ControllerInputActions.TrackingFreezeActionTitleString = header;
             ControllerInputActions.TrackingFreezeActionContentString =
-                Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Footer", ServiceData.Guid);
+                Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Footer");
         }
 
         // Flip
         {
-            var header = Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Header", ServiceData.Guid);
+            var header = Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Header");
 
             // Change the tip depending on the currently connected controllers
             var controllerModel = new StringBuilder(1024);
@@ -1273,23 +1253,23 @@ public class SteamVR : IServiceEndpoint
             if (controllerModel.ToString().Contains("knuckles", StringComparison.OrdinalIgnoreCase) ||
                 controllerModel.ToString().Contains("index", StringComparison.OrdinalIgnoreCase))
                 header = header.Replace("{0}",
-                    Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Buttons/Index", ServiceData.Guid));
+                    Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Buttons/Index"));
 
             else if (controllerModel.ToString().Contains("vive", StringComparison.OrdinalIgnoreCase))
                 header = header.Replace("{0}",
-                    Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Buttons/VIVE", ServiceData.Guid));
+                    Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Buttons/VIVE"));
 
             else if (controllerModel.ToString().Contains("mr", StringComparison.OrdinalIgnoreCase))
                 header = header.Replace("{0}",
-                    Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Buttons/WMR", ServiceData.Guid));
+                    Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Buttons/WMR"));
 
             else
                 header = header.Replace("{0}",
-                    Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Buttons/Oculus", ServiceData.Guid));
+                    Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Buttons/Oculus"));
 
             ControllerInputActions.SkeletonFlipActionTitleString = header;
             ControllerInputActions.SkeletonFlipActionContentString =
-                Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Footer", ServiceData.Guid);
+                Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Footer");
         }
     }
 

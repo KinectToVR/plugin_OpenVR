@@ -207,7 +207,7 @@ public static class EvrInput
             _mDefaultActionSet.nPriority = 0;
 
             // Return OK
-            Host.Log("EVR Input Actions initialized OK", LogSeverity.Info);
+            Host.Log("EVR Input Actions initialized OK");
             return true;
         }
 
