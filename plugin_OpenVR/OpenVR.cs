@@ -69,6 +69,8 @@ public class SteamVR : IServiceEndpoint
 
     [Import(typeof(IAmethystHost))] private IAmethystHost Host { get; set; }
 
+    public bool CanAutoStartAmethyst => true;
+
     public bool IsSettingsDaemonSupported => true;
 
     public object SettingsInterfaceRoot => InterfaceRoot;
