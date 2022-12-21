@@ -206,6 +206,7 @@ public class SteamVR : IServiceEndpoint
                 {
                     ActionFailedFlyout.Content = new TextBlock
                     {
+                        FontWeight = FontWeights.SemiBold,
                         Text = Host.RequestLocalizedString("/SettingsPage/ReManifest/Error/NotFound")
                     };
 
@@ -221,6 +222,7 @@ public class SteamVR : IServiceEndpoint
                 {
                     ActionFailedFlyout.Content = new TextBlock
                     {
+                        FontWeight = FontWeights.SemiBold,
                         Text = Host.RequestLocalizedString("/SettingsPage/ReManifest/Error/Other")
                     };
 
@@ -1086,10 +1088,12 @@ public class SteamVR : IServiceEndpoint
             return 0;
         }
 
-        if (File.Exists(Path.Join(Assembly.GetAssembly(GetType())!.Location, "Amethyst.vrmanifest")))
+        var manifestPath = Path.Join(Directory.GetParent(Assembly
+            .GetAssembly(GetType())!.Location)?.FullName, "Amethyst.vrmanifest");
+
+        if (File.Exists(manifestPath))
         {
-            var appError = OpenVR.Applications.AddApplicationManifest(
-                Path.Join(Assembly.GetAssembly(GetType())!.Location, "Amethyst.vrmanifest"), false);
+            var appError = OpenVR.Applications.AddApplicationManifest(manifestPath, false);
 
             if (appError != EVRApplicationError.None)
             {
@@ -1097,14 +1101,11 @@ public class SteamVR : IServiceEndpoint
                 return -1;
             }
 
-            Host.Log("Amethyst manifest installed at: " +
-                     $"{Path.Join(Assembly.GetAssembly(GetType())!.Location, "Amethyst.vrmanifest")}");
+            Host.Log("Amethyst manifest installed at: " + $"{manifestPath}");
             return 0;
         }
 
-        Host.Log(
-            $"Amethyst vr manifest ({Path.Join(Assembly.GetAssembly(GetType())!.Location, "Amethyst.vrmanifest")}) not found!",
-            LogSeverity.Warning);
+        Host.Log($"Amethyst vr manifest ({manifestPath}) not found!", LogSeverity.Warning);
         return -2;
     }
 

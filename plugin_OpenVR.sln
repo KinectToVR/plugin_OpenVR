@@ -5,6 +5,8 @@ VisualStudioVersion = 17.5.33103.201
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "plugin_OpenVR", "plugin_OpenVR\plugin_OpenVR.csproj", "{3C5DB9DE-D479-4160-815D-7B664F6AC8EF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "driver_Amethyst", "driver_Amethyst\driver_Amethyst.vcxproj", "{6871E868-80FA-489A-BE81-216094033C14}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -15,6 +17,10 @@ Global
 		{3C5DB9DE-D479-4160-815D-7B664F6AC8EF}.Debug|x64.Build.0 = Debug|x64
 		{3C5DB9DE-D479-4160-815D-7B664F6AC8EF}.Release|x64.ActiveCfg = Release|x64
 		{3C5DB9DE-D479-4160-815D-7B664F6AC8EF}.Release|x64.Build.0 = Release|x64
+		{6871E868-80FA-489A-BE81-216094033C14}.Debug|x64.ActiveCfg = Debug|x64
+		{6871E868-80FA-489A-BE81-216094033C14}.Debug|x64.Build.0 = Debug|x64
+		{6871E868-80FA-489A-BE81-216094033C14}.Release|x64.ActiveCfg = Release|x64
+		{6871E868-80FA-489A-BE81-216094033C14}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

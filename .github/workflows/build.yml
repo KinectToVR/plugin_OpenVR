@@ -22,8 +22,27 @@ jobs:
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v1.1
 
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v10
+        with:
+          vcpkgGitCommitId: 253704407ae68efa37bf8f5b59b3e06dd40d3d3f
+          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+
+      - name: Install vcpkg integration
+        run: vcpkg integrate install
+        
+      - name: Install libraries
+        shell: pwsh
+        run: |
+          vcpkg install `
+          glog:x64-windows-static gflags:x64-windows-static `
+          protobuf:x64-windows-static grpc:x64-windows-static
+
       - name: Restore and build (publish)
-        run: msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win10-x64 /t:Publish /p:PublishProfile=plugin_OpenVR\Properties\PublishProfiles\FolderProfile.pubxml
+        run: msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win10-x64 /t:plugin_OpenVR:Publish /p:PublishProfile=plugin_OpenVR\Properties\PublishProfiles\FolderProfile.pubxml
+
+      - name: Build the OpenVR driver
+        run: msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win10-x64 /t:driver_Amethyst
 
       - name: Pack published files
         run: |
