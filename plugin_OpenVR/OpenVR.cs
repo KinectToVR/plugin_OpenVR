@@ -80,6 +80,13 @@ public class SteamVR : IServiceEndpoint
     [DefaultValue("Not Defined\nE_NOT_DEFINED\nStatus message not defined!")]
     public string ServiceStatusString { get; private set; }
 
+    public Uri ErrorDocsUri => new(ServiceStatus switch
+    {
+        -10 => $"https://docs.k2vr.tech/{Host?.DocsLanguageCode ?? "en"}/app/steamvr-driver-codes/#2",
+        -1 => $"https://docs.k2vr.tech/{Host?.DocsLanguageCode ?? "en"}/app/steamvr-driver-codes/#3",
+        _ => $"https://docs.k2vr.tech/{Host?.DocsLanguageCode ?? "en"}/app/steamvr-driver-codes/#6"
+    });
+
     public SortedSet<TrackerType> AdditionalSupportedTrackerTypes =>
         new()
         {
