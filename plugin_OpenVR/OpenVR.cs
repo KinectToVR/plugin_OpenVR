@@ -617,13 +617,13 @@ public class SteamVR : IServiceEndpoint
 
         // Hide the current notification (if being shown)
         if (_vrNotificationId != 0) // If valid
-            OpenVR.Notifications.RemoveNotification(_vrNotificationId);
+            OpenVR.Notifications?.RemoveNotification(_vrNotificationId);
 
         // Empty image data
         var notificationBitmap = new NotificationBitmap_t();
 
         // null is the icon/image texture
-        OpenVR.Notifications.CreateNotification(
+        OpenVR.Notifications?.CreateNotification(
             _vrOverlayHandle, 0, EVRNotificationType.Transient,
             message.Title + '\n' + message.Text, EVRNotificationStyle.Application,
             ref notificationBitmap, ref _vrNotificationId);
@@ -1074,12 +1074,15 @@ public class SteamVR : IServiceEndpoint
             }
         }
 
+        // Re-check
+        if (OpenVR.System is null) return false;
+
         // We're good to go!
         Host.Log("Looks like the VR System is ready to go!");
 
         // Initialize the overlay
-        OpenVR.Overlay.DestroyOverlay(_vrOverlayHandle); // Destroy the overlay in case it somehow exists
-        OpenVR.Overlay.CreateOverlay("k2vr.amethyst.desktop", "Amethyst", ref _vrOverlayHandle);
+        OpenVR.Overlay?.DestroyOverlay(_vrOverlayHandle); // Destroy the overlay in case it somehow exists
+        OpenVR.Overlay?.CreateOverlay("k2vr.amethyst.desktop", "Amethyst", ref _vrOverlayHandle);
 
         Host.Log($"VR Playspace translation: \n{VrPlayspaceTranslation}");
         Host.Log($"VR Playspace orientation: \n{VrPlayspaceOrientationQuaternion}");
@@ -1191,7 +1194,7 @@ public class SteamVR : IServiceEndpoint
     private void ParseVrEvents()
     {
         // Poll and parse all needed VR (overlay) events
-        if (!Initialized || OpenVR.System is null) return;
+        if (!Initialized || OpenVR.System is null || OpenVR.Overlay is null) return;
 
         var vrEvent = new VREvent_t();
         while (OpenVR.Overlay.PollNextOverlayEvent(_vrOverlayHandle,
