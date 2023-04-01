@@ -1,0 +1,7 @@
+{
+  "version": "1.0.0.0",
+  "display_name": "SteamVR",
+  "download":  "plugin_OpenVR.zip",
+  "changelog": "More null checks (should fix occasional crashes?)",
+  "guid": "K2VRTEAM-AME2-APII-SNDP-SENDPTOPENVR"
+}

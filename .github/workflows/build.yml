@@ -56,4 +56,6 @@ jobs:
           automatic_release_tag: "latest"
           prerelease: true
           title: "plugin_OpenVR Build Artifact"
-          files: "plugin_OpenVR/bin/Release/net7.0/win10-x64/publish/plugin_OpenVR.zip"
+          files: |
+            ./plugin_OpenVR/bin/Release/net7.0/win10-x64/publish/plugin_OpenVR.zip
+            ./external/manifest.json
