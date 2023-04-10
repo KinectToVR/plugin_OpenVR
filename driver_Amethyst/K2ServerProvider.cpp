@@ -166,6 +166,9 @@ extern "C" __declspec(dllexport) void* HmdDriverFactory(const char* pInterfaceNa
 		                          .parent_path() // win64 (driver)
 		                          .parent_path() // bin (driver)
 		                          .parent_path() // Amethyst (driver)
+		                          .parent_path() // Assets (plugin)
+		                          .parent_path() // plugin_OpenVR
+		                          .parent_path() // Plugins (ame)
 		                          .parent_path() // Amethyst (root)
 			/ "K2CrashHandler" / "K2CrashHandler.exe";
 
@@ -181,13 +184,13 @@ extern "C" __declspec(dllexport) void* HmdDriverFactory(const char* pInterfaceNa
 		}
 		else
 		{
-			LOG(WARNING) << "Crash handler exe (../../../K2CrashHandler/K2CrashHandler.exe) not found!";
+			LOG(WARNING) << "Crash handler exe (../../../../../../K2CrashHandler/K2CrashHandler.exe) not found!";
 
 			MessageBoxA(nullptr, "SteamVR is running as administrator!\n\n"
 			            "The SteamVR process is currently elevated and Amethyst cannot communicate with it. "
 			            "Either Steam or SteamVR was tampered with to cause this.Undo these changes and try again. "
 			            "You see this error as a messagebox because the crash handler exe has not been found! "
-			            "(should be at \"../../../K2CrashHandler/K2CrashHandler.exe\" reative to the driver's .dll) ",
+			            "(should be at \"../../../../../../K2CrashHandler/K2CrashHandler.exe\" reative to the driver's .dll) ",
 			            "SteamVR running as admin!",
 			            MB_OK);
 		}

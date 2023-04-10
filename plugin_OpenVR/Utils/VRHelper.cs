@@ -2,6 +2,9 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Threading;
 using Microsoft.Win32;
 
@@ -38,6 +41,7 @@ public class VrHelper
         }
         catch (Exception)
         {
+            // ignored
         }
 
         SteamVrSettingsPath = Path.Combine(SteamPath, "config", "steamvr.vrsettings");
@@ -92,4 +96,36 @@ public class VrHelper
 
         return true;
     }
+
+    /// <summary>
+    /// Checks whether OpenVR is running with admin privileges
+    /// </summary>
+    public static bool IsOpenVrElevated()
+    {
+        try
+        {
+            return Process.GetProcesses().Where(proc => proc.ProcessName == "vrserver")
+                .Any(process => !OpenProcessToken(process.Handle, 0x00020000 | 0x0008, out _)
+                                && Marshal.GetLastWin32Error() == 5); // Look for any "access denied" errors
+        }
+        catch (Exception)
+        {
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Returns whether the current process is elevated or not
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsCurrentProcessElevated()
+    {
+        var currentIdentity = WindowsIdentity.GetCurrent();
+        var currentGroup = new WindowsPrincipal(currentIdentity);
+        return currentGroup.IsInRole(WindowsBuiltInRole.Administrator);
+    }
+    
+    [DllImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool OpenProcessToken(IntPtr ProcessHandle, uint DesiredAccess, out IntPtr TokenHandle);
 }

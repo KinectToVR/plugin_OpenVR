@@ -38,7 +38,7 @@ namespace plugin_OpenVR;
 [ExportMetadata("Name", "SteamVR")]
 [ExportMetadata("Guid", "K2VRTEAM-AME2-APII-SNDP-SENDPTOPENVR")]
 [ExportMetadata("Publisher", "K2VR Team")]
-[ExportMetadata("Version", "1.0.0.0")]
+[ExportMetadata("Version", "1.0.0.1")]
 [ExportMetadata("Website", "https://github.com/KinectToVR/plugin_OpenVR")]
 public class SteamVR : IServiceEndpoint
 {
@@ -142,7 +142,8 @@ public class SteamVR : IServiceEndpoint
     {
         get
         {
-            if (!Initialized || OpenVR.System is null) return true; // Sanity check
+            if (!Initialized || OpenVR.System is null ||
+                OpenVR.Overlay is null) return true; // Sanity check
 
             // Check if we're running on null
             StringBuilder systemStringBuilder = new(1024);
@@ -347,6 +348,16 @@ public class SteamVR : IServiceEndpoint
             if (Process.GetProcesses().FirstOrDefault(
                     proc => proc.ProcessName is "vrserver" or "vrmonitor") != null)
             {
+                // Check for privilege mismatches
+                if (VrHelper.IsOpenVrElevated() && !VrHelper.IsCurrentProcessElevated())
+                {
+                    await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
+                        Host?.RequestLocalizedString("/CrashHandler/ReRegister/Elevation"),
+                        "", "");
+                    return; // Suicide was always an option
+                }
+
+                // Finally kill
                 if (await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
                         Host?.RequestLocalizedString("/CrashHandler/ReRegister/KillSteamVR/Content"),
                         Host?.RequestLocalizedString("/CrashHandler/ReRegister/KillSteamVR/PrimaryButton"),
@@ -557,8 +568,11 @@ public class SteamVR : IServiceEndpoint
         // Reset the status
         ServiceStatus = 0;
 
-        // Initialize OpenVR
-        if (!OpenVrStartup())
+        // Check if Amethyst is running as admin
+        // Check if OpenVR is running as admin
+        // Initialize OpenVR if we're ready to go
+        if (VrHelper.IsCurrentProcessElevated() ||
+            VrHelper.IsOpenVrElevated() || !OpenVrStartup())
         {
             ServiceStatus = 1;
             return 1;
@@ -982,6 +996,18 @@ public class SteamVR : IServiceEndpoint
 
                 ServerDriverPresent = true;
                 break; // Change to success
+
+            case 1 when VrHelper.IsCurrentProcessElevated():
+                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/AmethystElevatedError")
+                    .Replace("{0}", "0x80080017");
+                // "AMETHYST ELEVATED (Code {0})\nE_AMETHYST_RUNAS\nAmethyst is running with admin rights, please start it normally. Amethyst can't communicate with the OpenVR API whenever running with administrator privileges."
+                break;
+                
+            case 1 when VrHelper.IsOpenVrElevated():
+                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/OpenVRElevatedError")
+                    .Replace("{0}", "0x80070005");
+                //"OPENVR ELEVATED (Code {0})\nE_VRSERVER_RUNAS\nSteamVR is running with admin rights, please start it normally. Amethyst can't communicate with the OpenVR API if SteamVR is running with administrator privileges."
+                break;
 
             case 1:
                 ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/OpenVRError")
