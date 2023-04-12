@@ -2,6 +2,6 @@
   "version": "1.0.0.1",
   "display_name": "SteamVR",
   "download": "plugin_OpenVR.zip",
-  "changelog": "Administrator privileges check tweaks",
+  "changelog": "Better path handling for SteamVR",
   "guid": "K2VRTEAM-AME2-APII-SNDP-SENDPTOPENVR"
 }
