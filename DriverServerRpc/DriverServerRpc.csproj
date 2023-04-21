@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>AnyCPU;x64</Platforms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Amethyst.Plugins.Contract" Version="0.2.12" />
+    <PackageReference Include="MessagePack" Version="2.5.108" />
+    <PackageReference Include="StreamJsonRpc" Version="2.14.24" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MessageContract\MessageContract.csproj" />
+  </ItemGroup>
+
+</Project>
