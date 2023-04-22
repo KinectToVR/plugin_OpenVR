@@ -15,14 +15,10 @@ public:
 
     IEnumerable<System::ValueTuple<TrackerType, bool>>^ UpdateTrackerList(
         IEnumerable<TrackerBase^>^ trackerList, bool wantReply) override;
-
-    IEnumerable<System::ValueTuple<TrackerType, bool>>^ RefreshTrackerPoseList(
-        IEnumerable<TrackerBase^>^ trackerList, bool wantReply) override;
-
+    
     bool RequestVrRestart(System::String^ message) override;
 
 private:
     static System::ValueTuple<TrackerType, bool> SetTrackerState(TrackerBase^ tracker);
     static System::ValueTuple<TrackerType, bool> UpdateTrackerPose(TrackerBase^ tracker);
-    static System::ValueTuple<TrackerType, bool> RefreshTracker(TrackerBase^ tracker);
 };

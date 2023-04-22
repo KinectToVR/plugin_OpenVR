@@ -133,9 +133,6 @@ public abstract class RpcHandler : IRpcServer
     public abstract IEnumerable<(TrackerType Tracker, bool Success)>?
         UpdateTrackerList(IEnumerable<TrackerBase> trackerList, bool wantReply);
 
-    public abstract IEnumerable<(TrackerType Tracker, bool Success)>?
-        RefreshTrackerPoseList(IEnumerable<TrackerBase> trackerList, bool wantReply);
-
     public abstract bool RequestVrRestart(string message);
 
     public DateTime PingDriverService()

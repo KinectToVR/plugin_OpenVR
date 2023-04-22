@@ -11,8 +11,9 @@ using namespace Amethyst::Plugins::Contract;
 IEnumerable<ValueTuple<TrackerType, bool>>^ DriverRpcHandler::SetTrackerStateList(
     IEnumerable<TrackerBase^>^ trackerList, bool wantReply)
 {
-    auto result = Linq::Enumerable::Select(
-        trackerList, gcnew Func<TrackerBase^, ValueTuple<TrackerType, bool>>(&DriverRpcHandler::SetTrackerState));
+    // Go over all trackers in the list and collect the results, execute
+    auto result = Linq::Enumerable::ToList(Linq::Enumerable::Select(
+        trackerList, gcnew Func<TrackerBase^, ValueTuple<TrackerType, bool>>(&DriverRpcHandler::SetTrackerState)));
 
     // Either return the result or save data
     return wantReply ? result : nullptr;
@@ -21,19 +22,10 @@ IEnumerable<ValueTuple<TrackerType, bool>>^ DriverRpcHandler::SetTrackerStateLis
 IEnumerable<ValueTuple<TrackerType, bool>>^ DriverRpcHandler::UpdateTrackerList(
     IEnumerable<TrackerBase^>^ trackerList, bool wantReply)
 {
-    auto result = Linq::Enumerable::Select(
-        trackerList, gcnew Func<TrackerBase^, ValueTuple<TrackerType, bool>>(&DriverRpcHandler::UpdateTrackerPose));
-
-    // Either return the result or save data
-    return wantReply ? result : nullptr;
-}
-
-IEnumerable<ValueTuple<TrackerType, bool>>^ DriverRpcHandler::RefreshTrackerPoseList(
-    IEnumerable<TrackerBase^>^ trackerList, bool wantReply)
-{
-    auto result = Linq::Enumerable::Select(
-        trackerList, gcnew Func<TrackerBase^, ValueTuple<TrackerType, bool>>(&DriverRpcHandler::RefreshTracker));
-
+    // Go over all trackers in the list and collect the results, execute
+    auto result = Linq::Enumerable::ToList(Linq::Enumerable::Select(
+        trackerList, gcnew Func<TrackerBase^, ValueTuple<TrackerType, bool>>(&DriverRpcHandler::UpdateTrackerPose)));
+    
     // Either return the result or save data
     return wantReply ? result : nullptr;
 }
@@ -68,7 +60,7 @@ ValueTuple<TrackerType, bool> DriverRpcHandler::SetTrackerState(TrackerBase^ tra
         {
             server::service->LogError(L"Couldn't spawn tracker with ID " +
                 tracker->Role.ToString() + " due to an unknown native exception.");
-            return ValueTuple<TrackerType, bool>(tracker->Role, true); // Failure
+            return ValueTuple<TrackerType, bool>(tracker->Role, false); // Failure
         }
 
         // Set the state of the native tracker
@@ -85,7 +77,7 @@ ValueTuple<TrackerType, bool> DriverRpcHandler::SetTrackerState(TrackerBase^ tra
 
     server::service->LogError(L"Couldn't update tracker with ID " +
         tracker->Role.ToString() + ". The tracker index was out of bounds.");
-    return ValueTuple<TrackerType, bool>(tracker->Role, true); // Failure
+    return ValueTuple<TrackerType, bool>(tracker->Role, false); // Failure
 }
 
 ValueTuple<TrackerType, bool> DriverRpcHandler::UpdateTrackerPose(TrackerBase^ tracker)
@@ -98,24 +90,14 @@ ValueTuple<TrackerType, bool> DriverRpcHandler::UpdateTrackerPose(TrackerBase^ t
 
         // Update the pose of the passed tracker
         tracker_vector_.at(static_cast<int>(tracker->Role)).set_pose(pTracker);
+
+        server::service->LogError(L"Updated tracker with ID " +
+            tracker->Role.ToString() + " pose.");
+
         return ValueTuple<TrackerType, bool>(tracker->Role, true);
     }
 
     server::service->LogError(L"Couldn't update tracker with ID " +
-        tracker->Role.ToString() + ". The tracker index was out of bounds.");
-    return ValueTuple<TrackerType, bool>(tracker->Role, true); // Failure
-}
-
-ValueTuple<TrackerType, bool> DriverRpcHandler::RefreshTracker(TrackerBase^ tracker)
-{
-    if (tracker_vector_.size() > static_cast<int>(tracker->Role))
-    {
-        // Call the VR update handler and compose the result
-        tracker_vector_.at(static_cast<int>(tracker->Role)).update();
-        return ValueTuple<TrackerType, bool>(tracker->Role, true);
-    }
-
-    server::service->LogError(L"Couldn't refresh tracker with ID " +
         tracker->Role.ToString() + ". The tracker index was out of bounds.");
     return ValueTuple<TrackerType, bool>(tracker->Role, true); // Failure
 }

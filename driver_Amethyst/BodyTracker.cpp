@@ -76,6 +76,7 @@ void BodyTracker::update()
         // If _active is false, then disconnect the tracker
         _pose.poseIsValid = _active;
         _pose.deviceIsConnected = _active;
+        
         vr::VRServerDriverHost()->TrackedDevicePoseUpdated(_index, _pose, sizeof _pose);
     }
 }
@@ -161,9 +162,6 @@ void BodyTracker::set_pose(void* tracker_ptr)
             _pose.vecAngularAcceleration[1] = 0.;
             _pose.vecAngularAcceleration[2] = 0.;
         }
-
-        // Automatically update the tracker when finished
-        update(); // called from this
     }
     catch (...)
     {

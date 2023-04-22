@@ -109,6 +109,8 @@ public:
     // It's running every frame
     void RunFrame() override
     {
+        for (auto& tracker : tracker_vector_)
+            tracker.update(); // Update all
     }
 
     bool ShouldBlockStandbyMode() override
