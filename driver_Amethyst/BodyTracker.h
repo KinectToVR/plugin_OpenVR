@@ -160,7 +160,7 @@ public:
     vr::DriverPose_t GetPose() override;
 
     // Update pose
-    void set_pose(void* tracker_ptr);
+    bool set_pose(void* tracker_ptr);
 
     void set_state(bool state);
     bool spawn(); // TrackedDeviceAdded

@@ -25,7 +25,7 @@ IEnumerable<ValueTuple<TrackerType, bool>>^ DriverRpcHandler::UpdateTrackerList(
     // Go over all trackers in the list and collect the results, execute
     auto result = Linq::Enumerable::ToList(Linq::Enumerable::Select(
         trackerList, gcnew Func<TrackerBase^, ValueTuple<TrackerType, bool>>(&DriverRpcHandler::UpdateTrackerPose)));
-    
+
     // Either return the result or save data
     return wantReply ? result : nullptr;
 }
@@ -66,7 +66,7 @@ ValueTuple<TrackerType, bool> DriverRpcHandler::SetTrackerState(TrackerBase^ tra
         // Set the state of the native tracker
         pTracker->set_state(tracker->ConnectionState);
 
-        server::service->LogError(
+        server::service->LogInfo(
             L"Unmanaged (native) tracker with ID " + tracker->Role.ToString() +
             " state has been set to " + tracker->ConnectionState.ToString());
 
@@ -89,11 +89,14 @@ ValueTuple<TrackerType, bool> DriverRpcHandler::UpdateTrackerPose(TrackerBase^ t
         *pTracker = tracker; // Set the handle root to the tracker
 
         // Update the pose of the passed tracker
-        tracker_vector_.at(static_cast<int>(tracker->Role)).set_pose(pTracker);
+        if (!tracker_vector_.at(static_cast<int>(tracker->Role)).set_pose(pTracker))
+        {
+            server::service->LogError(L"Couldn't update tracker with ID " +
+                tracker->Role.ToString() + " due to an unknown native exception.");
+            return ValueTuple<TrackerType, bool>(tracker->Role, false); // Failure
+        }
 
-        server::service->LogError(L"Updated tracker with ID " +
-            tracker->Role.ToString() + " pose.");
-
+        // It's all fine if we're still here, compose the result
         return ValueTuple<TrackerType, bool>(tracker->Role, true);
     }
 

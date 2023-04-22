@@ -81,7 +81,7 @@ void BodyTracker::update()
     }
 }
 
-void BodyTracker::set_pose(void* tracker_ptr)
+bool BodyTracker::set_pose(void* tracker_ptr)
 {
     try
     {
@@ -165,8 +165,11 @@ void BodyTracker::set_pose(void* tracker_ptr)
     }
     catch (...)
     {
-        // LOG(ERROR) << "Couldn't set tracker pose. An exception occurred."; TEMP
+        return false;
     }
+
+    // All fine
+    return true;
 }
 
 void BodyTracker::set_state(bool state)

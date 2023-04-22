@@ -76,7 +76,12 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <VcpkgUseStatic>false</VcpkgUseStatic>
     <VcpkgTriplet>x64-windows</VcpkgTriplet>
@@ -101,6 +106,10 @@
       <AdditionalDependencies>openvr_api.lib;shlwapi.lib;crypt32.lib;ws2_32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)vendor\openvr\lib\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d "$(SolutionDir)external\driver_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\"
+xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\bin\win64\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -126,6 +135,10 @@
       <AdditionalDependencies>openvr_api.lib;shlwapi.lib;crypt32.lib;ws2_32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)vendor\openvr\lib\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d "$(SolutionDir)external\driver_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\"
+xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\bin\win64\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -159,12 +172,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DriverServerRpc\DriverServerRpc.csproj">
-      <Project>{a03cab1d-6884-4a95-b87f-4b731abd61d6}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\IpcServer\DriverServerRpc.csproj">
-      <Project>{a03cab1d-6884-4a95-b87f-4b731abd61d6}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\IpcServer\IpcServer.csproj">
       <Project>{a03cab1d-6884-4a95-b87f-4b731abd61d6}</Project>
     </ProjectReference>
     <ProjectReference Include="..\MessageContract\MessageContract.csproj">

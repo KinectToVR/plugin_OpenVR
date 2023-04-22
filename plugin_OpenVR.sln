@@ -5,7 +5,7 @@ VisualStudioVersion = 17.5.33103.201
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "plugin_OpenVR", "plugin_OpenVR\plugin_OpenVR.csproj", "{3C5DB9DE-D479-4160-815D-7B664F6AC8EF}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "driver_ClassLib", "driver_Amethyst\driver_Amethyst.vcxproj", "{D1DB325D-7B48-4E15-8947-1A270224E492}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "driver_Amethyst", "driver_Amethyst\driver_Amethyst.vcxproj", "{D1DB325D-7B48-4E15-8947-1A270224E492}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DriverServerRpc", "DriverServerRpc\DriverServerRpc.csproj", "{A03CAB1D-6884-4A95-B87F-4B731ABD61D6}"
 EndProject
