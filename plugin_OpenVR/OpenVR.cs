@@ -1130,8 +1130,8 @@ public class SteamVR : IServiceEndpoint
                 -_evrInput.LeftJoystickActionData.y * posMultiplexer);
 
         ControllerInputActions.AdjustRotationValues =
-            new Vector2(_evrInput.LeftJoystickActionData.x * MathF.PI / 280f * rotMultiplexer,
-                _evrInput.RightJoystickActionData.y * MathF.PI / 280f * rotMultiplexer);
+            new Vector2(_evrInput.RightJoystickActionData.y * MathF.PI / 280f * rotMultiplexer,
+                -_evrInput.LeftJoystickActionData.x * MathF.PI / 280f * rotMultiplexer);
     }
 
     private void ParseVrEvents()
