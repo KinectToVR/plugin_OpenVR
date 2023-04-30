@@ -75,11 +75,12 @@
     },
     {
       "id": "/ServerStatuses/OpenVRError",
-      "translation": "OPENVR INIT ERROR (Code {0})\nE_OVRINIT_ERROR\nCheck if SteamVR is running, and your VR headset is connected properly to it. Additionally, you can restart SteamVR and check its logs."
+      "translation": "OPENVR INIT ERROR (Code {0})\nE_OVRINIT_ERROR\nCheck if SteamVR is running, and your VR headset is connected properly to it, and click 'Refresh' to check again. Additionally, you can restart SteamVR and check its logs.",
+      "translatorComment": "[Refresh] as in the refresh button, /DevicesPage/Buttons/Reconnect @Amethyst, make sure it's the same string!"
     },
     {
       "id": "/ServerStatuses/OpenVRElevatedError",
-      "translation": "OPENVR ELEVATED (Code {0})\nE_VRSERVER_RUNAS\nSteamVR is running with admin rights, please start it normally. Amethyst can't communicate with the OpenVR API if SteamVR is running with administrator privileges."
+      "translation": "OPENVR ELEVATED (Code {0})\nE_VRSERVER_RUNAS\nAmethyst can't communicate with the OpenVR API if SteamVR is running with administrator privileges, please start it normally. Optionally, you can run Amethyst as administrator too, to suppress this specific error."
     },
     {
       "id": "/ServerStatuses/AmethystElevatedError",
@@ -91,11 +92,11 @@
     },
     {
       "id": "/ServerStatuses/ConnectionError",
-      "translation": "SERVER CONNECTION ERROR (Code {0})\nE_CONNECTION_ERROR\nCheck SteamVR add-ons (NOT overlays) and enable Amethyst."
+      "translation": "SERVER CONNECTION ERROR (Code {0})\nE_CONNECTION_ERROR\nCheck SteamVR add-ons (NOT overlays) and enable Amethyst. You can also try re-registering the driver entry from SteamVR service settings within Amethyst."
     },
     {
       "id": "/ServerStatuses/RPCChannelFailure",
-      "translation": "RPC CHANNEL FAILURE (Code {0})\nE_RPC_CHAN_FAILURE\nCould not connect to the the RPC channel because it was null. Please report."
+      "translation": "RPC CHANNEL FAILURE (Code {0})\nE_RPC_CHAN_FAILURE\nCould not connect to the the RPC channel because it was null. Please restart, check logs and write to us on Discord."
     },
     {
       "id": "/ServerStatuses/Exception",
