@@ -12,7 +12,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <TrimmerRootAssembly Include="MessagePack" />
+        <TrimmerRootAssembly Include="Microsoft.VisualStudio.Threading" />
         <TrimmerRootAssembly Include="Newtonsoft.Json" />
+        <TrimmerRootAssembly Include="StreamJsonRpc" />
     </ItemGroup>
 
     <ItemGroup>
