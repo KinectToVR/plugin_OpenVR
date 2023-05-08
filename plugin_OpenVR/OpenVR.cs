@@ -65,7 +65,7 @@ public class SteamVR : IServiceEndpoint
         OpenVR.System.GetRawZeroPoseToStandingAbsoluteTrackingPose().GetOrientation();
 
     private Exception ServerDriverException { get; set; }
-    private bool ServerDriverPresent { get; set; }
+    private bool ServerDriverPresent => ServiceStatus == 0;
 
     [Import(typeof(IAmethystHost))] private IAmethystHost Host { get; set; }
 
@@ -78,7 +78,42 @@ public class SteamVR : IServiceEndpoint
     public int ServiceStatus { get; private set; }
 
     [DefaultValue("Not Defined\nE_NOT_DEFINED\nStatus message not defined!")]
-    public string ServiceStatusString { get; private set; }
+    public string ServiceStatusString => PluginLoaded
+        ? ServiceStatus switch
+        {
+            0 => Host.RequestLocalizedString("/ServerStatuses/Success")
+                .Replace("{0}", ServiceStatus.ToString()),
+
+            1 when VrHelper.IsOpenVrElevated() =>
+                Host.RequestLocalizedString("/ServerStatuses/OpenVRElevatedError")
+                    .Replace("{0}", "0x80070005"),
+
+            1 when VrHelper.IsCurrentProcessElevated() =>
+                Host.RequestLocalizedString("/ServerStatuses/AmethystElevatedError")
+                    .Replace("{0}", "0x80080017"),
+
+            1 => Host.RequestLocalizedString("/ServerStatuses/OpenVRError")
+                .Replace("{0}", ServiceStatus.ToString()),
+
+            2 => Host.RequestLocalizedString("/ServerStatuses/IVRInputError")
+                .Replace("{0}", ServiceStatus.ToString()),
+
+            -1 => Host.RequestLocalizedString("/ServerStatuses/ConnectionError")
+                .Replace("{0}", ServiceStatus.ToString()),
+
+            -10 => Host.RequestLocalizedString("/ServerStatuses/Exception")
+                .Replace("{0}", ServiceStatus.ToString()
+                    .Replace("{1}", ServerDriverException.Message)),
+
+            -2 => Host.RequestLocalizedString("/ServerStatuses/RPCChannelFailure")
+                .Replace("{0}", ServiceStatus.ToString()),
+
+            10 => Host.RequestLocalizedString("/ServerStatuses/ServerFailure")
+                .Replace("{0}", ServiceStatus.ToString()),
+
+            _ => Host.RequestLocalizedString("/ServerStatuses/WTF")
+        }
+        : $"Undefined: {ServiceStatus}\nE_UNDEFINED\nSomething weird has happened, though we can't tell what.";
 
     public Uri ErrorDocsUri => new(ServiceStatus switch
     {
@@ -192,16 +227,26 @@ public class SteamVR : IServiceEndpoint
 
         ReManifestButton = new Button
         {
-            Content = Host.RequestLocalizedString("/SettingsPage/Buttons/ReManifest"),
+            Content = new TextBlock
+            {
+                Text = Host.RequestLocalizedString("/SettingsPage/Buttons/ReManifest"),
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                FontSize = 16, FontWeight = FontWeights.SemiBold
+            },
             Height = 40, HorizontalAlignment = HorizontalAlignment.Stretch,
-            Margin = new Thickness { Right = 6 }, FontSize = 16, FontWeight = FontWeights.SemiBold
+            Margin = new Thickness { Right = 6 }
         };
 
         ReRegisterButton = new Button
         {
-            Content = Host.RequestLocalizedString("/SettingsPage/Buttons/ReRegister"),
+            Content = new TextBlock
+            {
+                Text = Host.RequestLocalizedString("/SettingsPage/Buttons/ReRegister"),
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                FontSize = 16, FontWeight = FontWeights.SemiBold
+            },
             Height = 40, HorizontalAlignment = HorizontalAlignment.Stretch,
-            Margin = new Thickness { Left = 6 }, FontSize = 16, FontWeight = FontWeights.SemiBold
+            Margin = new Thickness { Left = 6 }
         };
 
         Grid.SetColumn(ReManifestButton, 0);
@@ -468,9 +513,10 @@ public class SteamVR : IServiceEndpoint
             return await _driverJsonRpcHandler.InvokeAsync<IEnumerable<(TrackerBase Tracker, bool Success)>?>(
                 nameof(IRpcServer.SetTrackerStateList), trackerBases.ToList(), wantReply);
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
+            Host?.Log($"Failed to update one or more trackers, exception: {e.Message}");
+            return wantReply ? new List<(TrackerBase Tracker, bool Success)> { (null, false) } : null;
         }
     }
 
@@ -486,8 +532,9 @@ public class SteamVR : IServiceEndpoint
             return await _driverJsonRpcHandler.InvokeAsync<IEnumerable<(TrackerBase Tracker, bool Success)>?>(
                 nameof(IRpcServer.UpdateTrackerList), trackerBases.ToList(), wantReply);
         }
-        catch (Exception)
+        catch (Exception e)
         {
+            Host?.Log($"Failed to update one or more trackers, exception: {e.Message}");
             return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
         }
     }
@@ -916,65 +963,6 @@ public class SteamVR : IServiceEndpoint
     private async Task K2ServerDriverRefreshAsync()
     {
         ServiceStatus = await CheckK2ServerStatusAsync();
-        ServerDriverPresent = false; // Assume fail
-        ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/WTF");
-        //"COULD NOT CHECK STATUS (\u15dc\u02ec\u15dc)\nE_WTF\nSomething's fucked a really big time.";
-
-        switch (ServiceStatus)
-        {
-            case 0:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/Success")
-                    .Replace("{0}", ServiceStatus.ToString());
-                //"Success! (Code 1)\nI_OK\nEverything's good!";
-
-                ServerDriverPresent = true;
-                break; // Change to success
-
-            case 1 when VrHelper.IsOpenVrElevated():
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/OpenVRElevatedError")
-                    .Replace("{0}", "0x80070005");
-                break;
-
-            case 1 when VrHelper.IsCurrentProcessElevated():
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/AmethystElevatedError")
-                    .Replace("{0}", "0x80080017");
-                break;
-
-            case 1:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/OpenVRError")
-                    .Replace("{0}", ServiceStatus.ToString());
-                break;
-
-            case 2:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/IVRInputError")
-                    .Replace("{0}", ServiceStatus.ToString());
-                break;
-
-            case -1:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/ConnectionError")
-                    .Replace("{0}", ServiceStatus.ToString());
-                break;
-
-            case -10:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/Exception")
-                    .Replace("{0}", ServiceStatus.ToString())
-                    .Replace("{1}", ServerDriverException.Message);
-                break;
-
-            case -2:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/RPCChannelFailure")
-                    .Replace("{0}", ServiceStatus.ToString());
-                break;
-
-            case 10:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/ServerFailure")
-                    .Replace("{0}", ServiceStatus.ToString());
-                break;
-
-            default:
-                ServiceStatusString = Host.RequestLocalizedString("/ServerStatuses/WTF");
-                break;
-        }
 
         // Request a quick status refresh
         Host?.RefreshStatusInterface();
