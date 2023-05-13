@@ -198,7 +198,7 @@ public class SteamVR : IServiceEndpoint
                 return false; // Standby - hide
 
             // Check if the dashboard is open
-            return OpenVR.Overlay.IsDashboardVisible();
+            return OpenVR.Overlay?.IsDashboardVisible() ?? false;
         }
     }
 
@@ -366,6 +366,7 @@ public class SteamVR : IServiceEndpoint
     public void Shutdown()
     {
         lock (InitLock)
+        lock (Host.UpdateThreadLock)
         {
             Initialized = false; // vrClient dll unloaded
             OpenVR.Shutdown(); // Shutdown OpenVR
@@ -510,8 +511,9 @@ public class SteamVR : IServiceEndpoint
             if (!Initialized || OpenVR.System is null || _driverJsonRpcHandler is null || ServiceStatus != 0)
                 return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
 
-            return await _driverJsonRpcHandler.InvokeAsync<IEnumerable<(TrackerBase Tracker, bool Success)>?>(
-                nameof(IRpcServer.SetTrackerStateList), trackerBases.ToList(), wantReply);
+            return (await _driverJsonRpcHandler.InvokeAsync<IEnumerable<(TrackerType Tracker, bool Success)>?>(
+                    nameof(IRpcServer.SetTrackerStateList), trackerBases.ToList(), wantReply))?
+                .Select(x => (new TrackerBase { Role = x.Tracker }, x.Success));
         }
         catch (Exception e)
         {
@@ -529,8 +531,9 @@ public class SteamVR : IServiceEndpoint
             if (!Initialized || OpenVR.System is null || _driverJsonRpcHandler is null || ServiceStatus != 0)
                 return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
 
-            return await _driverJsonRpcHandler.InvokeAsync<IEnumerable<(TrackerBase Tracker, bool Success)>?>(
-                nameof(IRpcServer.UpdateTrackerList), trackerBases.ToList(), wantReply);
+            return (await _driverJsonRpcHandler.InvokeAsync<IEnumerable<(TrackerType Tracker, bool Success)>?>(
+                    nameof(IRpcServer.UpdateTrackerList), trackerBases.ToList(), wantReply))?
+                .Select(x => (new TrackerBase { Role = x.Tracker }, x.Success));
         }
         catch (Exception e)
         {
@@ -1132,11 +1135,11 @@ public class SteamVR : IServiceEndpoint
                    ref vrEvent, (uint)Marshal.SizeOf<VREvent_t>()))
         {
             if (vrEvent.eventType != (uint)EVREventType.VREvent_Quit) continue;
-
             Host.Log("VREvent_Quit has been called, requesting more time for handling the exit...");
 
-            OpenVR.System.AcknowledgeQuit_Exiting();
-            Host.RequestExit("OpenVR shutting down!");
+            Initialized = false; // Mark as not initialized to block all actions with requirements of such
+            _ = Task.Run(() => Host.RequestExit("OpenVR shutting down!")); // 1s before shutdown
+            OpenVR.System.AcknowledgeQuit_Exiting(); // We have 1s to call this, amethyst shuts down next
         }
     }
 
