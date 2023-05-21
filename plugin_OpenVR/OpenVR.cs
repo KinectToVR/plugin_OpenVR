@@ -531,9 +531,11 @@ public class SteamVR : IServiceEndpoint
             if (!Initialized || OpenVR.System is null || _driverJsonRpcHandler is null || ServiceStatus != 0)
                 return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
 
-            return (await _driverJsonRpcHandler.InvokeAsync<IEnumerable<(TrackerType Tracker, bool Success)>?>(
-                    nameof(IRpcServer.UpdateTrackerList), trackerBases.ToList(), wantReply))?
-                .Select(x => (new TrackerBase { Role = x.Tracker }, x.Success));
+            await _driverJsonRpcHandler.InvokeAsync<IEnumerable<(TrackerType Tracker, bool Success)>?>(
+                nameof(IRpcServer.UpdateTrackerList), trackerBases.ToList(), wantReply);
+
+            // Discard the result to save resources, as it's not even used anywhere
+            return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
         }
         catch (Exception e)
         {
