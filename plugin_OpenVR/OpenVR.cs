@@ -627,8 +627,13 @@ public class SteamVR : IServiceEndpoint
 
         /* 1 */
 
-        // Get crash handler's  parent path
-        var doubleParentPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location);
+        // Get plugin_OpenVR.dll parent path
+        var doubleParentPath = new DirectoryInfo(
+            "C:\\Program Files\\ModifiableWindowsApps\\Amethyst\\Plugins\\plugin_OpenVR");
+
+        // Optionally change to the other variant
+        if (!doubleParentPath.Exists)
+            doubleParentPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location);
 
         // Search for driver manifests, try max 2 times
         var localAmethystDriverPath = "";
