@@ -15,6 +15,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.ApplicationModel;
 using Windows.Data.Json;
 using Amethyst.Plugins.Contract;
 using MessageContract;
@@ -24,6 +25,7 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Newtonsoft.Json;
 using plugin_OpenVR.Utils;
 using StreamJsonRpc;
 using Valve.VR;
@@ -1035,28 +1037,62 @@ public class SteamVR : IServiceEndpoint
         if (!Initialized || OpenVR.Applications is null) return 0; // Sanity check
         if (OpenVR.Applications.IsApplicationInstalled("K2VR.Amethyst"))
         {
-            Host.Log("Amethyst manifest is already installed");
-            return 0;
+            Host.Log("Amethyst manifest is already installed, removing...");
+
+            OpenVR.Applications.RemoveApplicationManifest(
+                "C:/Program Files/ModifiableWindowsApps/Amethyst/Plugins/plugin_OpenVR/Amethyst.vrmanifest");
+            OpenVR.Applications.RemoveApplicationManifest("../../Plugins/plugin_OpenVR/Amethyst.vrmanifest");
         }
 
+        // Compose the manifest path depending on where our plugin is
         var manifestPath = Path.Join(Directory.GetParent(Assembly
             .GetAssembly(GetType())!.Location)?.FullName, "Amethyst.vrmanifest");
 
-        if (File.Exists(manifestPath))
+        try
         {
-            var appError = OpenVR.Applications.AddApplicationManifest(manifestPath, false);
-
-            if (appError != EVRApplicationError.None)
+            if (File.Exists(manifestPath))
             {
-                Host.Log($"Amethyst manifest not installed! Error: {appError}", LogSeverity.Warning);
-                return -1;
-            }
+                var manifestJson = JsonConvert.DeserializeObject<VRManifest>(File.ReadAllText(manifestPath));
+                if (manifestJson?.applications?.FirstOrDefault() is null)
+                {
+                    Host.Log($"Amethyst vr manifest ({manifestPath}) was invalid!", LogSeverity.Warning);
+                    return -2; // Give up on registering the application vr manifest
+                }
 
-            Host.Log("Amethyst manifest installed at: " + $"{manifestPath}");
-            return 0;
+                try
+                {
+                    manifestJson.applications.FirstOrDefault()!.binary_path_windows = Package.Current is not null
+                        ? "C:\\Program Files\\ModifiableWindowsApps\\Amethyst\\Amethyst.exe" // Mutable app path
+                        : "../../Amethyst.exe"; // Modify the application manifest accordingly to the app path
+                }
+                catch (InvalidOperationException e)
+                {
+                    // In case of any issues, replace the computed path with the default, relative one
+                    manifestJson.applications.FirstOrDefault()!.binary_path_windows = "../../Amethyst.exe";
+                    Host?.Log(e); // This will throw in case of not packaged apps, so don't care too much
+                }
+
+                // Write the modified manifest data to the actual file
+                File.WriteAllText(manifestPath, JsonConvert.SerializeObject(manifestJson, Formatting.Indented));
+
+                // Finally register the manifest
+                var appError = OpenVR.Applications.AddApplicationManifest(manifestPath, false);
+                if (appError != EVRApplicationError.None)
+                {
+                    Host.Log($"Amethyst manifest not installed! Error: {appError}", LogSeverity.Warning);
+                    return -1;
+                }
+
+                Host.Log("Amethyst manifest installed at: " + $"{manifestPath}");
+                return 0;
+            }
+        }
+        catch (Exception e)
+        {
+            Host?.Log(e, LogSeverity.Error);
         }
 
-        Host.Log($"Amethyst vr manifest ({manifestPath}) not found!", LogSeverity.Warning);
+        Host?.Log($"Amethyst vr manifest ({manifestPath}) not found!", LogSeverity.Warning);
         return -2;
     }
 
