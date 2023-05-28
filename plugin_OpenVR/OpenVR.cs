@@ -631,7 +631,7 @@ public class SteamVR : IServiceEndpoint
 
         // Get plugin_OpenVR.dll parent path
         var doubleParentPath = new DirectoryInfo(
-            "C:\\Program Files\\ModifiableWindowsApps\\Amethyst\\Plugins\\plugin_OpenVR");
+            "C:\\Program Files\\ModifiableWindowsApps\\K2VRTeam.Amethyst.App\\Plugins\\plugin_OpenVR");
 
         // Optionally change to the other variant
         if (!doubleParentPath.Exists)
@@ -1040,7 +1040,7 @@ public class SteamVR : IServiceEndpoint
             Host.Log("Amethyst manifest is already installed, removing...");
 
             OpenVR.Applications.RemoveApplicationManifest(
-                "C:/Program Files/ModifiableWindowsApps/Amethyst/Plugins/plugin_OpenVR/Amethyst.vrmanifest");
+                "C:/Program Files/ModifiableWindowsApps/K2VRTeam.Amethyst.App/Plugins/plugin_OpenVR/Amethyst.vrmanifest");
             OpenVR.Applications.RemoveApplicationManifest("../../Plugins/plugin_OpenVR/Amethyst.vrmanifest");
         }
 
@@ -1062,7 +1062,7 @@ public class SteamVR : IServiceEndpoint
                 try
                 {
                     manifestJson.applications.FirstOrDefault()!.binary_path_windows = Package.Current is not null
-                        ? "C:\\Program Files\\ModifiableWindowsApps\\Amethyst\\Amethyst.exe" // Mutable app path
+                        ? "C:\\Program Files\\ModifiableWindowsApps\\K2VRTeam.Amethyst.App\\Amethyst.exe"
                         : "../../Amethyst.exe"; // Modify the application manifest accordingly to the app path
                 }
                 catch (InvalidOperationException e)
