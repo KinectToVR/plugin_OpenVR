@@ -17,6 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.Data.Json;
+using Windows.System;
 using Amethyst.Plugins.Contract;
 using MessageContract;
 using MessagePack;
@@ -29,6 +30,8 @@ using Newtonsoft.Json;
 using plugin_OpenVR.Utils;
 using StreamJsonRpc;
 using Valve.VR;
+using System.Web;
+using Windows.Storage;
 
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
 // To learn more about WinUI, the WinUI project structure,
@@ -629,46 +632,53 @@ public class SteamVR : IServiceEndpoint
 
         /* 1 */
 
-        // Get plugin_OpenVR.dll parent path
-        var doubleParentPath = new DirectoryInfo(
-            "C:\\Program Files\\ModifiableWindowsApps\\K2VRTeam.Amethyst.App\\Plugins\\plugin_OpenVR");
-
-        // Optionally change to the other variant
-        if (!doubleParentPath.Exists)
-            doubleParentPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location);
-
-        // Search for driver manifests, try max 2 times
+        // Create a placeholder for the driver path
         var localAmethystDriverPath = "";
-        for (var i = 0; i < 2; i++)
+
+        // Check whether Amethyst is installed as a package
+        if (!PackageUtils.IsAmethystPackaged)
         {
-            // Double that to get Amethyst exe path
-            if (doubleParentPath.Parent != null) doubleParentPath = doubleParentPath.Parent;
+            // Optionally change to the other variant
+            if (!new DirectoryInfo(localAmethystDriverPath).Exists)
+            {
+                // Get plugin_OpenVR.dll parent path
+                var parentPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location);
 
-            // Find all vr driver manifests there
-            var allLocalDriverManifests = Directory.GetFiles(doubleParentPath.ToString(), "driver.vrdrivermanifest",
-                SearchOption.AllDirectories);
-
-            // For each found manifest, check if there is an ame driver dll inside
-            foreach (var localDriverManifest in allLocalDriverManifests)
-                if (File.Exists(Path.Combine(Directory.GetParent(localDriverManifest).ToString(), "bin", "win64",
-                        "driver_Amethyst.dll")))
+                // Search for driver manifests, try max 2 times
+                for (var i = 0; i < 2; i++)
                 {
-                    // We've found it! Now cache it and break free
-                    localAmethystDriverPath = Directory.GetParent(localDriverManifest).ToString();
-                    goto p_search_loop_end;
+                    // Double that to get Amethyst exe path
+                    if (parentPath?.Parent != null) parentPath = parentPath.Parent;
+                    if (parentPath is null) goto p_search_loop_end;
+
+                    // Find all vr driver manifests there
+                    var allLocalDriverManifests = Directory.GetFiles(parentPath.ToString(),
+                        "driver.vrdrivermanifest", SearchOption.AllDirectories);
+
+                    // For each found manifest, check if there is an ame driver dll inside
+                    foreach (var localDriverManifest in allLocalDriverManifests)
+                        if (File.Exists(Path.Combine(Directory.GetParent(localDriverManifest).ToString(), "bin",
+                                "win64",
+                                "driver_Amethyst.dll")))
+                        {
+                            // We've found it! Now cache it and break free
+                            localAmethystDriverPath = Directory.GetParent(localDriverManifest).ToString();
+                            goto p_search_loop_end;
+                        }
+                    // Else redo once more & then check
                 }
-            // Else redo once more & then check
-        }
+            }
 
-        // End of the searching loop
-        p_search_loop_end:
+            // End of the searching loop
+            p_search_loop_end:
 
-        // If there's none (still), cry about it and abort
-        if (string.IsNullOrEmpty(localAmethystDriverPath))
-        {
-            await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
-                Host?.RequestLocalizedString("/CrashHandler/ReRegister/DriverNotFound"), "", "");
-            return;
+            // If there's none (still), cry about it and abort
+            if (string.IsNullOrEmpty(localAmethystDriverPath) || !new DirectoryInfo(localAmethystDriverPath).Exists)
+            {
+                await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
+                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/DriverNotFound"), "", "");
+                return;
+            }
         }
 
         /* 2 */
@@ -699,10 +709,33 @@ public class SteamVR : IServiceEndpoint
                 return;
         }
 
+        /* 1.1 Copy packaged Amethyst drivers */
+
+        // Check whether Amethyst is installed as a package
+        if (PackageUtils.IsAmethystPackaged)
+        {
+            // Copy all driver files to Amethyst's local data folder
+            new DirectoryInfo(Path.Join(Directory.GetParent(
+                    Assembly.GetExecutingAssembly().Location)!.FullName, "Driver", "Amethyst"))
+                .CopyToFolder((await ApplicationData.Current.LocalFolder.CreateFolderAsync(
+                    "Amethyst", CreationCollisionOption.OpenIfExists)).Path);
+
+            // Assume it's done now and get the path
+            localAmethystDriverPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst");
+
+            // If there's none (still), cry about it and abort
+            if (string.IsNullOrEmpty(localAmethystDriverPath) || !Directory.Exists(localAmethystDriverPath))
+            {
+                Host?.Log($"Copied driver not present at expectant path of: {localAmethystDriverPath}");
+                await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
+                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/DriverNotFound"), "", "");
+                return;
+            }
+        }
+
         /* 2.5 */
 
         // Search for all K2EX instances and either unregister or delete them
-
 
         var isDriverK2Present = resultPaths.Exists.CopiedDriverExists; // is ame copied?
         var driverK2PathsList = new List<string>(); // ame external list
