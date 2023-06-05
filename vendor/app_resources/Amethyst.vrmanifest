@@ -4,8 +4,12 @@
 		{
 			"app_key": "K2VR.Amethyst",
 			"launch_type": "binary",
-			"binary_path_windows": "C:\\Program Files\\ModifiableWindowsApps\\Amethyst\\Amethyst.exe",
+
+      		"url": "amethyst-app:",
+			"binary_path_windows": "..\\..\\Amethyst.exe",
+
 			"is_dashboard_overlay": true,
+      		"image_path": "..\\..\\Assets\\ktvr.png",
 
 			"strings": {
 				"en_us": {

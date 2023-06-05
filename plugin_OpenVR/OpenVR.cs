@@ -165,9 +165,8 @@ public class SteamVR : IServiceEndpoint
             var appError = OpenVR.Applications.SetApplicationAutoLaunch("K2VR.Amethyst", value);
 
             if (appError != EVRApplicationError.None)
-                Host.Log(
-                    $"Amethyst manifest not installed! Error: {OpenVR.Applications.GetApplicationsErrorNameFromEnum(appError)}",
-                    LogSeverity.Warning);
+                Host.Log("Amethyst manifest not installed! Error: " +
+                         $"{OpenVR.Applications.GetApplicationsErrorNameFromEnum(appError)}", LogSeverity.Warning);
         }
     }
 
@@ -1094,14 +1093,13 @@ public class SteamVR : IServiceEndpoint
 
                 try
                 {
-                    manifestJson.applications.FirstOrDefault()!.binary_path_windows = Package.Current is not null
-                        ? "C:\\Program Files\\ModifiableWindowsApps\\K2VRTeam.Amethyst.App\\Amethyst.exe"
-                        : "../../Amethyst.exe"; // Modify the application manifest accordingly to the app path
+                    manifestJson.applications.FirstOrDefault()!.launch_type = 
+                        Package.Current is not null ? "url" : "binary"; // Modify the manifest
                 }
                 catch (InvalidOperationException e)
                 {
                     // In case of any issues, replace the computed path with the default, relative one
-                    manifestJson.applications.FirstOrDefault()!.binary_path_windows = "../../Amethyst.exe";
+                    manifestJson.applications.FirstOrDefault()!.launch_type = "binary"; // Launch exe
                     Host?.Log(e); // This will throw in case of not packaged apps, so don't care too much
                 }
 
@@ -1112,11 +1110,11 @@ public class SteamVR : IServiceEndpoint
                 var appError = OpenVR.Applications.AddApplicationManifest(manifestPath, false);
                 if (appError != EVRApplicationError.None)
                 {
-                    Host.Log($"Amethyst manifest not installed! Error: {appError}", LogSeverity.Warning);
+                    Host?.Log($"Amethyst manifest not installed! Error: {appError}", LogSeverity.Warning);
                     return -1;
                 }
 
-                Host.Log("Amethyst manifest installed at: " + $"{manifestPath}");
+                Host?.Log("Amethyst manifest installed at: " + $"{manifestPath}");
                 return 0;
             }
         }

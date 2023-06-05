@@ -19,8 +19,13 @@ internal class VRManifest
     {
         public string app_key { get; set; }
         public string launch_type { get; set; }
+
+        public string url { get; set; }
         public string binary_path_windows { get; set; }
+
         public bool is_dashboard_overlay { get; set; }
+        public string image_path { get; set; }
+
         public Dictionary<string, VRStrings> strings { get; set; }
 
         internal class VRStrings
