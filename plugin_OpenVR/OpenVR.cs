@@ -62,6 +62,7 @@ public class SteamVR : IServiceEndpoint
     private Button ReManifestButton { get; set; }
     private Button ReRegisterButton { get; set; }
     private Flyout ActionFailedFlyout { get; set; }
+    private ProgressBar ReRegisterButtonBar { get; set; }
 
     private Vector3 VrPlayspaceTranslation =>
         OpenVR.System.GetRawZeroPoseToStandingAbsoluteTrackingPose().GetPosition();
@@ -241,16 +242,38 @@ public class SteamVR : IServiceEndpoint
             Margin = new Thickness { Right = 6 }
         };
 
+        ReRegisterButtonBar = new ProgressBar
+        {
+            IsIndeterminate = true, Opacity = 0.0,
+            Margin = new Thickness(-11,0,-11,-9),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            OpacityTransition = new ScalarTransition()
+        };
+
         ReRegisterButton = new Button
         {
-            Content = new TextBlock
+            Content = new Grid
             {
-                Text = Host.RequestLocalizedString("/SettingsPage/Buttons/ReRegister"),
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                FontSize = 16, FontWeight = FontWeights.SemiBold
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = Host.RequestLocalizedString("/SettingsPage/Buttons/ReRegister"),
+                        TextTrimming = TextTrimming.CharacterEllipsis,
+                        FontSize = 16, FontWeight = FontWeights.SemiBold,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    },
+                    ReRegisterButtonBar
+                },
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Bottom
             },
-            Height = 40, HorizontalAlignment = HorizontalAlignment.Stretch,
-            Margin = new Thickness { Left = 6 }
+            Height = 40, Margin = new Thickness { Left = 6 },
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch
+           
         };
 
         Grid.SetColumn(ReManifestButton, 0);
@@ -629,6 +652,9 @@ public class SteamVR : IServiceEndpoint
              * in VRSettings. A run failure/exception of this one isn't critical
              */
 
+        // Show the "working" progress bar
+        ReRegisterButtonBar.Opacity = 1.0;
+
         /* 1 */
 
         // Create a placeholder for the driver path
@@ -674,9 +700,12 @@ public class SteamVR : IServiceEndpoint
             // If there's none (still), cry about it and abort
             if (string.IsNullOrEmpty(localAmethystDriverPath) || !new DirectoryInfo(localAmethystDriverPath).Exists)
             {
+                // Hide the "working" progress bar
+                ReRegisterButtonBar.Opacity = 0.0;
+
                 await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
                     Host?.RequestLocalizedString("/CrashHandler/ReRegister/DriverNotFound"), "", "");
-                return;
+                return; // Hide and exit the handler
             }
         }
 
@@ -688,11 +717,14 @@ public class SteamVR : IServiceEndpoint
             // Check for privilege mismatches
             if (VrHelper.IsOpenVrElevated() && !VrHelper.IsCurrentProcessElevated())
             {
+                // Hide the "working" progress bar
+                ReRegisterButtonBar.Opacity = 0.0;
+
                 await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
                     Host?.RequestLocalizedString("/CrashHandler/ReRegister/Elevation"), "", "");
-                return; // Suicide was always an option
+                return; // Hide and exit the handler
             }
-
+            
             // Finally kill
             if (await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
                     Host?.RequestLocalizedString("/CrashHandler/ReRegister/KillSteamVR/Content"),
@@ -705,7 +737,10 @@ public class SteamVR : IServiceEndpoint
                     return helper.CloseSteamVr();
                 });
             else
-                return;
+            {
+                ReRegisterButtonBar.Opacity = 0.0;
+                return; // Hide and exit the handler
+            }
         }
 
         /* 1.1 Copy packaged Amethyst drivers */
@@ -725,10 +760,13 @@ public class SteamVR : IServiceEndpoint
             // If there's none (still), cry about it and abort
             if (string.IsNullOrEmpty(localAmethystDriverPath) || !Directory.Exists(localAmethystDriverPath))
             {
+                // Hide the "working" progress bar
+                ReRegisterButtonBar.Opacity = 0.0;
+
                 Host?.Log($"Copied driver not present at expectant path of: {localAmethystDriverPath}");
                 await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
                     Host?.RequestLocalizedString("/CrashHandler/ReRegister/DriverNotFound"), "", "");
-                return;
+                return; // Hide and exit the handler
             }
         }
 
@@ -773,10 +811,13 @@ public class SteamVR : IServiceEndpoint
         }
         catch (Exception)
         {
+            // Hide the "working" progress bar
+            ReRegisterButtonBar.Opacity = 0.0;
+
             // Critical, cry about it
             await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
                 Host?.RequestLocalizedString("/CrashHandler/ReRegister/FatalRemoveException_K2EX"), "", "");
-            return;
+            return; // Hide and exit the handler
         }
 
         /* 3 */
@@ -831,10 +872,13 @@ public class SteamVR : IServiceEndpoint
         }
         catch (Exception)
         {
+            // Hide the "working" progress bar
+            ReRegisterButtonBar.Opacity = 0.0;
+
             // Critical, cry about it
             await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
                 Host?.RequestLocalizedString("/CrashHandler/ReRegister/FatalRemoveException"), "", "");
-            return;
+            return; // Hide and exit the handler
         }
 
         /* 4 */
@@ -851,17 +895,23 @@ public class SteamVR : IServiceEndpoint
                 var openVrPathsCheck = OpenVrPaths.Read();
                 if (!openVrPathsCheck.external_drivers.Contains(localAmethystDriverPath))
                 {
+                    // Hide the "working" progress bar
+                    ReRegisterButtonBar.Opacity = 0.0;
+
                     await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
                         Host?.RequestLocalizedString("/CrashHandler/ReRegister/OpenVRPathsWriteError"), "", "");
-                    return;
+                    return; // Hide and exit the handler
                 }
             }
             catch (Exception)
             {
+                // Hide the "working" progress bar
+                ReRegisterButtonBar.Opacity = 0.0;
+
                 // Critical, cry about it
                 await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
                     Host?.RequestLocalizedString("/CrashHandler/ReRegister/FatalRegisterException"), "", "");
-                return;
+                return; // Hide and exit the handler
             }
 
         /* 5 */
@@ -887,6 +937,9 @@ public class SteamVR : IServiceEndpoint
         {
             // Not critical
         }
+
+        // Hide the "working" progress bar
+        ReRegisterButtonBar.Opacity = 0.0;
 
         // Winning it!
         await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
@@ -1093,7 +1146,7 @@ public class SteamVR : IServiceEndpoint
 
                 try
                 {
-                    manifestJson.applications.FirstOrDefault()!.launch_type = 
+                    manifestJson.applications.FirstOrDefault()!.launch_type =
                         Package.Current is not null ? "url" : "binary"; // Modify the manifest
                 }
                 catch (InvalidOperationException e)
