@@ -895,7 +895,7 @@ public class SteamVR : IServiceEndpoint
 
     #region Amethyst VRDriver Methods
 
-    private async Task<int> InitAmethystServerAsync(string target = "jhbDkiHugI&O(*TYOLsUIhFli;h")
+    private async Task<int> InitAmethystServerAsync(string target = "E8F6C6A4-9911-4541-A5F5-7DAAE97ADDAF")
     {
         try
         {

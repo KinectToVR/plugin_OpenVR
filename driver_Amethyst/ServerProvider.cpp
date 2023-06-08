@@ -91,7 +91,7 @@ public:
             server::service->LogInfo(L"Registered a tracker: " + gcnew System::String(tracker.get_serial().c_str()));
 
         server::service->LogInfo(L"Setting up the server runner...");
-        server::service->SetupRunner(L"jhbDkiHugI&O(*TYOLsUIhFli;h");
+        server::service->SetupRunner(L"E8F6C6A4-9911-4541-A5F5-7DAAE97ADDAF");
 
         // That's all, mark as okay
         return vr::VRInitError_None;
