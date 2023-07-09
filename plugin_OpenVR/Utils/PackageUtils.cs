@@ -23,6 +23,8 @@ public static class PackageUtils
         }
     }
 
+    public static string AmethystMutableDirectory => "C:/Program Files/ModifiableWindowsApps/K2VRTeam.Amethyst.App";
+
     public static string GetAmethystAppDataPath()
     {
         return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Packages",

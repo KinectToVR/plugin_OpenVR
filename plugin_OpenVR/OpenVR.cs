@@ -245,7 +245,7 @@ public class SteamVR : IServiceEndpoint
         ReRegisterButtonBar = new ProgressBar
         {
             IsIndeterminate = true, Opacity = 0.0,
-            Margin = new Thickness(-11,0,-11,-9),
+            Margin = new Thickness(-11, 0, -11, -9),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Bottom,
             OpacityTransition = new ScalarTransition()
@@ -273,7 +273,6 @@ public class SteamVR : IServiceEndpoint
             Height = 40, Margin = new Thickness { Left = 6 },
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
-           
         };
 
         Grid.SetColumn(ReManifestButton, 0);
@@ -635,22 +634,22 @@ public class SteamVR : IServiceEndpoint
         }
 
         /*
-             * ReRegister Logic:
-             *
-             * Search for Amethyst VRDriver in the crash handler's directory
-             * and 2 folders up in tree, recursively. (Find the manifest)
-             *
-             * If the manifest & dll are found, check and ask to close SteamVR
-             *
-             * With closed SteamVR, search for all remaining 'driver_Amethyst' instances:
-             * copied inside /drivers/ or registered. If found, ask to delete them
-             *
-             * When everything is purified, we can register the 'driver_Amethyst'
-             * via OpenVRPaths and then check twice if it's there ready to go
-             *
-             * If the previous steps succeeded, we can enable the 'driver_Amethyst'
-             * in VRSettings. A run failure/exception of this one isn't critical
-             */
+         * ReRegister Logic:
+         *
+         * Search for Amethyst VRDriver in the crash handler's directory
+         * and 2 folders up in tree, recursively. (Find the manifest)
+         *
+         * If the manifest & dll are found, check and ask to close SteamVR
+         *
+         * With closed SteamVR, search for all remaining 'driver_Amethyst' instances:
+         * copied inside /drivers/ or registered. If found, ask to delete them
+         *
+         * When everything is purified, we can register the 'driver_Amethyst'
+         * via OpenVRPaths and then check twice if it's there ready to go
+         *
+         * If the previous steps succeeded, we can enable the 'driver_Amethyst'
+         * in VRSettings. A run failure/exception of this one isn't critical
+         */
 
         // Show the "working" progress bar
         ReRegisterButtonBar.Opacity = 1.0;
@@ -724,18 +723,20 @@ public class SteamVR : IServiceEndpoint
                     Host?.RequestLocalizedString("/CrashHandler/ReRegister/Elevation"), "", "");
                 return; // Hide and exit the handler
             }
-            
+
             // Finally kill
             if (await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
                     Host?.RequestLocalizedString("/CrashHandler/ReRegister/KillSteamVR/Content"),
                     Host?.RequestLocalizedString("/CrashHandler/ReRegister/KillSteamVR/PrimaryButton"),
                     Host?.RequestLocalizedString("/CrashHandler/ReRegister/KillSteamVR/SecondaryButton")))
+            {
                 await Task.Factory.StartNew(() =>
                 {
                     Shutdown(); // Exit not to be killed
                     Host.RefreshStatusInterface();
                     return helper.CloseSteamVr();
                 });
+            }
             else
             {
                 ReRegisterButtonBar.Opacity = 0.0;
@@ -1047,12 +1048,12 @@ public class SteamVR : IServiceEndpoint
         /*
          * codes:
             all ok: 0
-            
+
             server could not be reached - timeout: -1
             server could not be reached - exception: -10
-            
+
             server handler was invalid - null: -2
-            
+
             fatal run-time failure: 10
          */
     }
@@ -1130,8 +1131,10 @@ public class SteamVR : IServiceEndpoint
         }
 
         // Compose the manifest path depending on where our plugin is
-        var manifestPath = Path.Join(Directory.GetParent(Assembly
-            .GetAssembly(GetType())!.Location)?.FullName, "Amethyst.vrmanifest");
+        var manifestPath = PackageUtils.IsAmethystPackaged
+            ? Path.Join(PackageUtils.AmethystMutableDirectory, "Plugins/plugin_OpenVR/Amethyst.vrmanifest")
+            : Path.Join(Directory.GetParent(
+                Assembly.GetAssembly(GetType())!.Location)?.FullName, "Amethyst.vrmanifest");
 
         try
         {
