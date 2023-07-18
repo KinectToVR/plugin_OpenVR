@@ -1121,6 +1121,42 @@ public class SteamVR : IServiceEndpoint
     private int InstallVrApplicationManifest()
     {
         if (!Initialized || OpenVR.Applications is null) return 0; // Sanity check
+
+        // Prepare the manifest by copying it to a shared directory
+        // Check whether Amethyst is installed as a package
+        if (PackageUtils.IsAmethystPackaged)
+        {
+            // Copy all driver files to Amethyst's local data folder
+            Directory.CreateDirectory(Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst"));
+
+            // Copy the manifest
+            new FileInfo(Path.Join(
+                    Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.FullName, "Amethyst.vrmanifest"))
+                .CopyTo(Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst", "Amethyst.vrmanifest"), true);
+
+            // Copy the icon
+            var icon = new FileInfo(Path.Join(
+                Directory.GetParent(Environment.ProcessPath!)!.FullName, "Assets", "ktvr.png"));
+
+            if (icon.Exists)
+                icon.CopyTo(Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst", "ktvr.png"), true);
+
+            // Assume it's done now and get the path
+            var copiedManifestPath =
+                Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst", "Amethyst.vrmanifest");
+
+            // If there's none (still), cry about it and abort
+            if (string.IsNullOrEmpty(copiedManifestPath) || !File.Exists(copiedManifestPath))
+            {
+                // Hide the "working" progress bar
+                ReRegisterButtonBar.Opacity = 0.0;
+
+                Host?.Log($"Copied driver not present at expectant path of: {copiedManifestPath}");
+                Host?.Log($"Amethyst vr manifest ({copiedManifestPath}) not found!", LogSeverity.Warning);
+                return -2;
+            }
+        }
+
         if (OpenVR.Applications.IsApplicationInstalled("K2VR.Amethyst"))
         {
             Host.Log("Amethyst manifest is already installed, removing...");
@@ -1132,7 +1168,7 @@ public class SteamVR : IServiceEndpoint
 
         // Compose the manifest path depending on where our plugin is
         var manifestPath = PackageUtils.IsAmethystPackaged
-            ? Path.Join(PackageUtils.AmethystMutableDirectory, "Plugins/plugin_OpenVR/Amethyst.vrmanifest")
+            ? Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst", "Amethyst.vrmanifest")
             : Path.Join(Directory.GetParent(
                 Assembly.GetAssembly(GetType())!.Location)?.FullName, "Amethyst.vrmanifest");
 

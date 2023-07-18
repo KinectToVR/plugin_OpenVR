@@ -1,22 +1,22 @@
 {
-	"source" : "builtin",
-	"applications": [
-		{
-			"app_key": "K2VR.Amethyst",
-			"launch_type": "binary",
+  "source": "builtin",
+  "applications": [
+    {
+      "app_key": "K2VR.Amethyst",
+      "launch_type": "binary",
 
-      		"url": "amethyst-app:",
-			"binary_path_windows": "..\\..\\Amethyst.exe",
+      "url": "amethyst-app:",
+      "binary_path_windows": "..\\..\\Amethyst.exe",
 
-			"is_dashboard_overlay": true,
-      		"image_path": "..\\..\\Assets\\ktvr.png",
+      "is_dashboard_overlay": true,
+      "image_path": "ktvr.png",
 
-			"strings": {
-				"en_us": {
-					"name": "Amethyst",
-					"description": "Open source full-body tracking!"
-				}
-			}
-		}
-	]
+      "strings": {
+        "en_us": {
+          "name": "Amethyst",
+          "description": "Open source full-body tracking!"
+        }
+      }
+    }
+  ]
 }
