@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Windows.ApplicationModel;
 using Windows.Management.Deployment;
+using Windows.Storage;
 
 namespace plugin_OpenVR.Utils;
 
@@ -25,16 +26,12 @@ public static class PackageUtils
 
     public static string GetAmethystAppDataPath()
     {
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Packages",
-            new PackageManager().FindPackagesForUser("")
-                .First(x => x.Id.Name is "K2VRTeam.Amethyst.App").Id.FamilyName, "LocalState");
+        return ApplicationData.Current.LocalFolder.Path;
     }
 
     public static string GetAmethystTempPath()
     {
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Packages",
-            new PackageManager().FindPackagesForUser("")
-                .First(x => x.Id.Name is "K2VRTeam.Amethyst.App").Id.FamilyName, "TempState");
+        return ApplicationData.Current.TemporaryFolder.Path;
     }
 }
 
