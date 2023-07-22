@@ -11,16 +11,17 @@ using Amethyst.Plugins.Contract;
 using Microsoft.UI.Xaml.Controls;
 using plugin_OpenVR.Utils;
 using Windows.Storage;
+using Microsoft.UI.Xaml.Markup;
+using Microsoft.UI.Xaml.Media;
 
 namespace plugin_OpenVR;
 
 internal class SetupData : ICoreSetupData
 {
-    public object PluginIcon => new BitmapIcon
+    public object PluginIcon => new PathIcon
     {
-        UriSource = new Uri(Path.Join(Directory.GetParent(
-                Assembly.GetExecutingAssembly().Location)!.FullName,
-            "Assets", "Resources", "icon.png"))
+        Data = (Geometry)XamlBindingHelper.ConvertValue(typeof(Geometry),
+            "M50,0a50,50,0,1,0,50,50A50,50,0,0,0,50,0Zm0,86.33A36.33,36.33,0,1,1,86.33,50,36.34,36.34,0,0,1,50,86.33ZM50.12,37.16,41.27,62.84H34.72L26,37.16h6.23L37.56,55a13,13,0,0,1,.34,1.37,9.31,9.31,0,0,1,.18,1.19h.11c.05-.39.12-.81.21-1.25A14,14,0,0,1,38.75,55l5.31-17.8ZM74.06,62.84H67.52L64.1,56.52a9.1,9.1,0,0,0-1.66-2.33,3.19,3.19,0,0,0-1.9-.9H59v9.55H53.2V37.16h9.16q4.68,0,7,1.82a6.47,6.47,0,0,1,2.34,5.45,6.77,6.77,0,0,1-1.5,4.41,8.8,8.8,0,0,1-4.12,2.74v.07a4.78,4.78,0,0,1,2.14,1.5,14.82,14.82,0,0,1,1.69,2.38ZM59,41.49v7.44h2.51a4.1,4.1,0,0,0,3-1.13A3.81,3.81,0,0,0,65.62,45a3.31,3.31,0,0,0-1-2.63,4.53,4.53,0,0,0-3-.88Z")
     };
 
     public string GroupName => string.Empty;
