@@ -8,7 +8,7 @@ namespace plugin_OpenVR.Utils;
 [SuppressMessage("ReSharper", "CollectionNeverUpdated.Global")]
 internal class OpenVrPaths
 {
-    private static readonly string Path =
+    public static readonly string Path =
         Environment.ExpandEnvironmentVariables(System.IO.Path.Combine(
             "%LocalAppData%", "openvr", "openvrpaths.vrpath"));
 

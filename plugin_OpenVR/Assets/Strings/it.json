@@ -177,6 +177,10 @@
     {
       "id": "/CrashHandler/ReRegister/SteamVRNotFound",
       "translation": "SteamVR non è stato trovato,\ncontrollare se è installato."
+    },
+    {
+      "id": "/Dependencies/Driver",
+      "translation": "OpenVR Driver"
     }
   ]
 }

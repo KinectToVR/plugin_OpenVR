@@ -45,6 +45,8 @@ namespace plugin_OpenVR;
 [ExportMetadata("Publisher", "K2VR Team")]
 [ExportMetadata("Version", "1.0.0.1")]
 [ExportMetadata("Website", "https://github.com/KinectToVR/plugin_OpenVR")]
+[ExportMetadata("DependencyInstaller", typeof(DriverInstaller))]
+[ExportMetadata("CoreSetupData", typeof(SetupData))]
 public class SteamVR : IServiceEndpoint
 {
     private NamedPipeClientStream _clientNamedPipeStream;
