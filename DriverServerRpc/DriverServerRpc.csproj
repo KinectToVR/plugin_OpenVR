@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Amethyst.Plugins.Contract" Version="0.2.21" />
+    <PackageReference Include="Amethyst.Plugins.Contract" Version="0.2.22" />
     <PackageReference Include="MessagePack" Version="2.5.108" />
     <PackageReference Include="StreamJsonRpc" Version="2.15.29" />
   </ItemGroup>

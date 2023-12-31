@@ -182,7 +182,7 @@ xcopy /y /d "$(SolutionDir)external\runtime_resources\*" "$(SolutionDir)plugin_O
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Amethyst.Plugins.Contract">
-      <Version>0.2.21</Version>
+      <Version>0.2.22</Version>
     </PackageReference>
     <PackageReference Include="MessagePack">
       <Version>2.5.108</Version>

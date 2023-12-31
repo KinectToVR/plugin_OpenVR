@@ -551,7 +551,7 @@ public class SteamVR : IServiceEndpoint
     }
 
     public async Task<IEnumerable<(TrackerBase Tracker, bool Success)>> UpdateTrackerPoses(
-        IEnumerable<TrackerBase> trackerBases, bool wantReply = true)
+        IEnumerable<TrackerBase> trackerBases, bool wantReply = true, CancellationToken? token = null)
     {
         try
         {
@@ -559,8 +559,9 @@ public class SteamVR : IServiceEndpoint
             if (!Initialized || OpenVR.System is null || _driverJsonRpcHandler is null || ServiceStatus != 0)
                 return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
 
-            await _driverJsonRpcHandler.InvokeAsync<IEnumerable<(TrackerType Tracker, bool Success)>?>(
-                nameof(IRpcServer.UpdateTrackerList), trackerBases.ToList(), wantReply);
+            await _driverJsonRpcHandler.InvokeWithCancellationAsync<IEnumerable<(TrackerType Tracker, bool Success)>?>(
+                nameof(IRpcServer.UpdateTrackerList), new object[] { trackerBases.ToList(), wantReply },
+                token ?? CancellationToken.None);
 
             // Discard the result to save resources, as it's not even used anywhere
             return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
