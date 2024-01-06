@@ -34,11 +34,12 @@ jobs:
       - name: Replace IJW and FXR with prepared prebuilts
         shell: pwsh
         run: |
-           $(New-Object System.Net.WebClient).DownloadFile("https://github.com/KimihikoAkayasaki/runtime/releases/download/v8.0.0-fakefxr/comhost.dll", "plugin_OpenVR\bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\comhost.dll")
-           $(New-Object System.Net.WebClient).DownloadFile("https://github.com/KimihikoAkayasaki/runtime/releases/download/v8.0.0-fakefxr/hostfxr.dll", "plugin_OpenVR\bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\hostfxr.dll")
-           $(New-Object System.Net.WebClient).DownloadFile("https://github.com/KimihikoAkayasaki/runtime/releases/download/v8.0.0-fakefxr/hostpolicy.dll", "plugin_OpenVR\bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\hostpolicy.dll")
-           $(New-Object System.Net.WebClient).DownloadFile("https://github.com/KimihikoAkayasaki/runtime/releases/download/v8.0.0-fakefxr/ijwhost.dll", "plugin_OpenVR\bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\ijwhost.dll")
-           $(New-Object System.Net.WebClient).DownloadFile("https://github.com/KimihikoAkayasaki/runtime/releases/download/v8.0.0-fakefxr/nethost.dll", "plugin_OpenVR\bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\nethost.dll")
+           $(New-Object System.Net.WebClient).DownloadFile("https://github.com/KimihikoAkayasaki/runtime/releases/download/v7.0.0-fakefxr/comhost.dll", "plugin_OpenVR\bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\comhost.dll")
+           $(New-Object System.Net.WebClient).DownloadFile("https://github.com/KimihikoAkayasaki/runtime/releases/download/v7.0.0-fakefxr/coreclr.dll", "plugin_OpenVR\bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\coreclr.dll")
+           $(New-Object System.Net.WebClient).DownloadFile("https://github.com/KimihikoAkayasaki/runtime/releases/download/v7.0.0-fakefxr/hostfxr.dll", "plugin_OpenVR\bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\hostfxr.dll")
+           $(New-Object System.Net.WebClient).DownloadFile("https://github.com/KimihikoAkayasaki/runtime/releases/download/v7.0.0-fakefxr/hostpolicy.dll", "plugin_OpenVR\bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\hostpolicy.dll")
+           $(New-Object System.Net.WebClient).DownloadFile("https://github.com/KimihikoAkayasaki/runtime/releases/download/v7.0.0-fakefxr/ijwhost.dll", "plugin_OpenVR\bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\ijwhost.dll")
+           $(New-Object System.Net.WebClient).DownloadFile("https://github.com/KimihikoAkayasaki/runtime/releases/download/v7.0.0-fakefxr/nethost.dll", "plugin_OpenVR\bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\nethost.dll")
 
       - name: Pack published files
         run: |
