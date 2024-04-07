@@ -1,9 +1,9 @@
 #pragma once
-#include "pch.h"
-
 #include <filesystem>
 #include <map>
 #include <openvr_driver.h>
+
+#include "DataContract.h"
 
 #define AME_API_GET_TIMESTAMP_NOW \
 	std::chrono::time_point_cast<std::chrono::microseconds>	\
@@ -28,58 +28,58 @@ enum ITrackerType : int
 
 // Mapping enum to string for eliminating if-else loop
 const std::map<ITrackerType, const char*>
-    ITrackerType_String{
-        {Tracker_Handed, "vive_tracker_handed"},
-        {Tracker_LeftFoot, "vive_tracker_left_foot"},
-        {Tracker_RightFoot, "vive_tracker_right_foot"},
-        {Tracker_LeftShoulder, "vive_tracker_left_Shoulder"},
-        {Tracker_RightShoulder, "vive_tracker_right_shoulder"},
-        {Tracker_LeftElbow, "vive_tracker_left_elbow"},
-        {Tracker_RightElbow, "vive_tracker_right_elbow"},
-        {Tracker_LeftKnee, "vive_tracker_left_knee"},
-        {Tracker_RightKnee, "vive_tracker_right_knee"},
-        {Tracker_Waist, "vive_tracker_waist"},
-        {Tracker_Chest, "vive_tracker_chest"},
-        {Tracker_Camera, "vive_tracker_camera"},
-        {Tracker_Keyboard, "vive_tracker_keyboard"}
-    },
+ITrackerType_String{
+    {Tracker_Handed, "vive_tracker_handed"},
+    {Tracker_LeftFoot, "vive_tracker_left_foot"},
+    {Tracker_RightFoot, "vive_tracker_right_foot"},
+    {Tracker_LeftShoulder, "vive_tracker_left_Shoulder"},
+    {Tracker_RightShoulder, "vive_tracker_right_shoulder"},
+    {Tracker_LeftElbow, "vive_tracker_left_elbow"},
+    {Tracker_RightElbow, "vive_tracker_right_elbow"},
+    {Tracker_LeftKnee, "vive_tracker_left_knee"},
+    {Tracker_RightKnee, "vive_tracker_right_knee"},
+    {Tracker_Waist, "vive_tracker_waist"},
+    {Tracker_Chest, "vive_tracker_chest"},
+    {Tracker_Camera, "vive_tracker_camera"},
+    {Tracker_Keyboard, "vive_tracker_keyboard"}
+},
 
-    ITrackerType_Role_String{
-        {Tracker_Handed, "TrackerRole_Handed"},
-        {Tracker_LeftFoot, "TrackerRole_LeftFoot"},
-        {Tracker_RightFoot, "TrackerRole_RightFoot"},
-        {Tracker_LeftShoulder, "TrackerRole_LeftShoulder"},
-        {Tracker_RightShoulder, "TrackerRole_RightShoulder"},
-        {Tracker_LeftElbow, "TrackerRole_LeftElbow"},
-        {Tracker_RightElbow, "TrackerRole_RightElbow"},
-        {Tracker_LeftKnee, "TrackerRole_LeftKnee"},
-        {Tracker_RightKnee, "TrackerRole_RightKnee"},
-        {Tracker_Waist, "TrackerRole_Waist"},
-        {Tracker_Chest, "TrackerRole_Chest"},
-        {Tracker_Camera, "TrackerRole_Camera"},
-        {Tracker_Keyboard, "TrackerRole_Keyboard"}
-    },
+ITrackerType_Role_String{
+    {Tracker_Handed, "TrackerRole_Handed"},
+    {Tracker_LeftFoot, "TrackerRole_LeftFoot"},
+    {Tracker_RightFoot, "TrackerRole_RightFoot"},
+    {Tracker_LeftShoulder, "TrackerRole_LeftShoulder"},
+    {Tracker_RightShoulder, "TrackerRole_RightShoulder"},
+    {Tracker_LeftElbow, "TrackerRole_LeftElbow"},
+    {Tracker_RightElbow, "TrackerRole_RightElbow"},
+    {Tracker_LeftKnee, "TrackerRole_LeftKnee"},
+    {Tracker_RightKnee, "TrackerRole_RightKnee"},
+    {Tracker_Waist, "TrackerRole_Waist"},
+    {Tracker_Chest, "TrackerRole_Chest"},
+    {Tracker_Camera, "TrackerRole_Camera"},
+    {Tracker_Keyboard, "TrackerRole_Keyboard"}
+},
 
-    ITrackerType_Role_Serial{
-        {Tracker_Handed, "AME-HANDED"},
-        {Tracker_LeftFoot, "AME-LFOOT"},
-        {Tracker_RightFoot, "AME-RFOOT"},
-        {Tracker_LeftShoulder, "AME-LSHOULDER"},
-        {Tracker_RightShoulder, "AME-RSHOULDER"},
-        {Tracker_LeftElbow, "AME-LELBOW"},
-        {Tracker_RightElbow, "AME-RELBOW"},
-        {Tracker_LeftKnee, "AME-LKNEE"},
-        {Tracker_RightKnee, "AME-RKNEE"},
-        {Tracker_Waist, "AME-WAIST"},
-        {Tracker_Chest, "AME-CHEST"},
-        {Tracker_Camera, "AME-CAMERA"},
-        {Tracker_Keyboard, "AME-KEYBOARD"}
-    };
+ITrackerType_Role_Serial{
+    {Tracker_Handed, "AME-HANDED"},
+    {Tracker_LeftFoot, "AME-LFOOT"},
+    {Tracker_RightFoot, "AME-RFOOT"},
+    {Tracker_LeftShoulder, "AME-LSHOULDER"},
+    {Tracker_RightShoulder, "AME-RSHOULDER"},
+    {Tracker_LeftElbow, "AME-LELBOW"},
+    {Tracker_RightElbow, "AME-RELBOW"},
+    {Tracker_LeftKnee, "AME-LKNEE"},
+    {Tracker_RightKnee, "AME-RKNEE"},
+    {Tracker_Waist, "AME-WAIST"},
+    {Tracker_Chest, "AME-CHEST"},
+    {Tracker_Camera, "AME-CAMERA"},
+    {Tracker_Keyboard, "AME-KEYBOARD"}
+};
 
 class BodyTracker : public vr::ITrackedDeviceServerDriver
 {
 public:
-    explicit BodyTracker(std::string serial, ITrackerType role);
+    explicit BodyTracker(const std::string& serial, ITrackerType role);
     virtual ~BodyTracker() = default;
 
     /**
@@ -160,7 +160,7 @@ public:
     vr::DriverPose_t GetPose() override;
 
     // Update pose
-    bool set_pose(void* tracker_ptr);
+    bool set_pose(dTrackerBase const& tracker);
 
     void set_state(bool state);
     bool spawn(); // TrackedDeviceAdded

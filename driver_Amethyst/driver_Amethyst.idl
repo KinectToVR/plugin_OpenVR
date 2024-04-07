@@ -1,0 +1,21 @@
+import "IDriverService.idl";
+import "IVersionedApi.idl";
+import "ocidl.idl";
+
+[uuid(CB2E60B1-FF69-46EF-88F3-20B60EB50742)]
+library driver_Amethyst
+{
+	[uuid(BA32B754-20E3-4C8C-913B-28BBAC30531B)]
+	coclass DriverService
+	{
+		[default]
+		interface IDriverService;
+		interface IVersionedApi;
+	}
+
+	[uuid(964FE99C-A113-4B5C-B155-B44E231D3ED8)]
+	coclass TAPSite
+	{
+		interface IObjectWithSite;
+	};
+};

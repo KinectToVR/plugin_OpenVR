@@ -1,197 +1,138 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|x64">
-      <Configuration>Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|x64">
-      <Configuration>Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-  </ItemGroup>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.3233\build\Microsoft.Windows.SDK.BuildTools.props" Condition="Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.3233\build\Microsoft.Windows.SDK.BuildTools.props')" />
+  <Import Project="..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.props" Condition="Exists('..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.props')" />
+  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.240111.5\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240111.5\build\native\Microsoft.Windows.CppWinRT.props')" />
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
-    <EnableManagedPackageReferenceSupport>true</EnableManagedPackageReferenceSupport>
-    <ProjectGuid>{D1DB325D-7B48-4E15-8947-1A270224E492}</ProjectGuid>
-    <Keyword>NetCoreCProj</Keyword>
-    <RootNamespace>driverClassLib</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <TargetFramework>net7.0</TargetFramework>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <ProjectName>driver_Amethyst</ProjectName>
-  </PropertyGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ProjectGuid>{e759084f-6445-400d-8f43-a64a6e276659}</ProjectGuid>
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CLRSupport>NetCore</CLRSupport>
-    <CharacterSet>Unicode</CharacterSet>
+    <CppWinRTModernIDL>false</CppWinRTModernIDL>
+    <CppWinRTGenerateWindowsMetadata>true</CppWinRTGenerateWindowsMetadata>
+    <VcpkgUseStatic>true</VcpkgUseStatic>
+    <CppWinRTRootNamespaceAutoMerge>true</CppWinRTRootNamespaceAutoMerge>
+    <CppWinRTOptimized>true</CppWinRTOptimized>
+    <RootNamespace>driver_Amethyst</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CLRSupport>NetCore</CLRSupport>
-    <CharacterSet>Unicode</CharacterSet>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <DesktopCompatible>true</DesktopCompatible>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CLRSupport>NetCore</CLRSupport>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CLRSupport>NetCore</CLRSupport>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings">
-  </ImportGroup>
-  <ImportGroup Label="Shared">
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <VcpkgUseStatic>false</VcpkgUseStatic>
-    <VcpkgTriplet>x64-windows</VcpkgTriplet>
-  </PropertyGroup>
-  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <VcpkgUseStatic>false</VcpkgUseStatic>
-    <VcpkgTriplet>x64-windows</VcpkgTriplet>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <DesktopCompatible>true</DesktopCompatible>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnabled>false</VcpkgEnabled>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  <Import Project="..\Common\CppProject.props" />
+  <ItemDefinitionGroup Label="Globals">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)vendor;$(SolutionDir)vendor\openvr\headers;$(ProjectDir)Generated Files;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);Generated Files\$(Platform);$(SolutionDir)vendor;$(SolutionDir)vendor\openvr\headers;$(ProjectDir)Generated Files</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_AMD64_;driver_Amethyst_EXPORTS;WINRT_NO_MODULE_LOCK;RPCPROXY_ENABLE_CPP_NO_CINTERFACE;PROXY_CLSID_IS={ 0xb3901d84, 0xb3ba, 0x4347, { 0x8c, 0x5f, 0xee, 0xcf, 0xe5, 0x74, 0x55, 0xd } };ENTRY_PREFIX=PSFactory_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>openvr_api.lib;shlwapi.lib;crypt32.lib;ws2_32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)vendor\openvr\lib\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Ole32.lib;OleAut32.lib;rpcrt4.lib;runtimeobject.lib;user32.lib;openvr_api.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>driver_Amethyst.def</ModuleDefinitionFile>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+    <Midl>
+      <OutputDirectory>Generated Files\$(Platform)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>$(ProjectName).tlb</TypeLibraryName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp20</LanguageStandard>
+    </ClCompile>
+    <PreBuildEvent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">powershell -Command New-Item -ItemType Directory -Force -Path '$(IntDirFullPath)Generated Files\MIDL\'
+
+powershell -Command midl '$(ProjectDir)$(ProjectName).idl' /tlb '$(IntDirFullPath)Generated Files\MIDL\$(ProjectName).tlb' /I '$(ProjectDir)'
+powershell -Command tlbimp '$(IntDirFullPath)Generated Files\MIDL\$(ProjectName).tlb' /out:'$(OutDir)com.$(ProjectName).dll'</Command>
+    </PreBuildEvent>
+    <Link>
+      <AdditionalLibraryDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)vendor\openvr\lib\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /y /d "$(SolutionDir)external\driver_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\"
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">xcopy /y /d "$(SolutionDir)external\driver_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\"
 xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\bin\win64\"
-xcopy /y /d /e "$(SolutionDir)external\runtime_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\bin\win64\"</Command>
+xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdcpp20</LanguageStandard>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
     </ClCompile>
+    <PreBuildEvent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">powershell -Command New-Item -ItemType Directory -Force -Path '$(IntDirFullPath)Generated Files\MIDL\'
+
+powershell -Command midl '$(ProjectDir)$(ProjectName).idl' /tlb '$(IntDirFullPath)Generated Files\MIDL\$(ProjectName).tlb' /I '$(ProjectDir)'
+powershell -Command tlbimp '$(IntDirFullPath)Generated Files\MIDL\$(ProjectName).tlb' /out:'$(OutDir)com.$(ProjectName).dll'</Command>
+    </PreBuildEvent>
     <Link>
-      <AdditionalDependencies />
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)vendor;$(SolutionDir)vendor\openvr\headers;$(ProjectDir)Generated Files;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>openvr_api.lib;shlwapi.lib;crypt32.lib;ws2_32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)vendor\openvr\lib\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)vendor\openvr\lib\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /y /d "$(SolutionDir)external\driver_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\"
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">xcopy /y /d "$(SolutionDir)external\driver_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\"
 xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\bin\win64\"
-xcopy /y /d /e "$(SolutionDir)external\runtime_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\bin\win64\"</Command>
+xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+  <ItemDefinitionGroup Condition="'$(Platform)'=='ARM64'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <!-- Fix an issue where RpcProxy.h would not do anything under ARM64. -->
+      <PreprocessorDefinitions>WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
-    <Link>
-      <AdditionalDependencies />
-    </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="BodyTracker.cpp" />
+    <ClCompile Include="Generated Files\$(Platform)\dlldata.c" />
+    <ClCompile Include="Generated Files\$(Platform)\driver_Amethyst_i.c" />
+    <ClCompile Include="Generated Files\$(Platform)\IDriverService_i.c" />
+    <ClCompile Include="Generated Files\$(Platform)\IDriverService_p.c" />
+    <ClCompile Include="Generated Files\$(Platform)\IVersionedApi_i.c" />
+    <ClCompile Include="Generated Files\$(Platform)\IVersionedApi_p.c" />
+    <ClCompile Include="module.cpp" />
+    <ClCompile Include="ServerProvider.cpp" />
+    <ClCompile Include="DriverService.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="driver_Amethyst.def" />
+    <None Include="packages.config" />
+    <None Include="vcpkg.json" />
+  </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BodyTracker.h" />
+    <ClInclude Include="Generated Files\$(Platform)\driver_Amethyst.h" />
+    <ClInclude Include="Generated Files\$(Platform)\IDriverService.h" />
+    <ClInclude Include="Generated Files\$(Platform)\IVersionedApi.h" />
+    <ClInclude Include="Generated Files\x64\DataContract.h" />
     <ClInclude Include="DriverService.h" />
-    <ClInclude Include="pch.h" />
-    <ClInclude Include="Resource.h" />
-    <ClInclude Include="DriverRpcHandler.h" />
+    <ClInclude Include="Logging.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AssemblyInfo.cpp" />
-    <ClCompile Include="BodyTracker.cpp" />
-    <ClCompile Include="DriverRpcHandler.cpp" />
-    <ClCompile Include="ServerProvider.cpp" />
+    <Midl Include="driver_Amethyst.idl" />
+    <Midl Include="IDriverService.idl" />
+    <Midl Include="IVersionedApi.idl" />
+    <Midl Include="DataContract.idl" />
   </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="app.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="app.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\DriverServerRpc\DriverServerRpc.csproj">
-      <Project>{a03cab1d-6884-4a95-b87f-4b731abd61d6}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\MessageContract\MessageContract.csproj">
-      <Project>{7368302d-2129-4c51-8ef8-00acc8871485}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Amethyst.Plugins.Contract">
-      <Version>0.2.22</Version>
-    </PackageReference>
-    <PackageReference Include="MessagePack">
-      <Version>2.5.108</Version>
-    </PackageReference>
-    <PackageReference Include="StreamJsonRpc">
-      <Version>2.15.29</Version>
-    </PackageReference>
-  </ItemGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240111.5\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.240111.5\build\native\Microsoft.Windows.CppWinRT.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240111.5\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.240111.5\build\native\Microsoft.Windows.CppWinRT.targets'))" />
+    <Error Condition="!Exists('..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.props'))" />
+    <Error Condition="!Exists('..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.240122.1\build\native\Microsoft.Windows.ImplementationLibrary.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.ImplementationLibrary.1.0.240122.1\build\native\Microsoft.Windows.ImplementationLibrary.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.3233\build\Microsoft.Windows.SDK.BuildTools.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.3233\build\Microsoft.Windows.SDK.BuildTools.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.3233\build\Microsoft.Windows.SDK.BuildTools.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.3233\build\Microsoft.Windows.SDK.BuildTools.targets'))" />
+  </Target>
+  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.240111.5\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240111.5\build\native\Microsoft.Windows.CppWinRT.targets')" />
+  <Import Project="..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.targets" Condition="Exists('..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.targets')" />
+  <Import Project="..\packages\Microsoft.Windows.ImplementationLibrary.1.0.240122.1\build\native\Microsoft.Windows.ImplementationLibrary.targets" Condition="Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.240122.1\build\native\Microsoft.Windows.ImplementationLibrary.targets')" />
+  <Import Project="..\packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.3233\build\Microsoft.Windows.SDK.BuildTools.targets" Condition="Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.3233\build\Microsoft.Windows.SDK.BuildTools.targets')" />
 </Project>

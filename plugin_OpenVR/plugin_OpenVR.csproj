@@ -1,90 +1,100 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
-        <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
-        <TargetPlatformVersion>10.0.22621.0</TargetPlatformVersion>
-        <TargetPlatformIdentifier>Windows</TargetPlatformIdentifier>
-        <RootNamespace>plugin_OpenVR</RootNamespace>
-        <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
-        <PublishTrimmed>true</PublishTrimmed>
-        <Platforms>x64</Platforms>
-        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+		<TargetPlatformVersion>10.0.22621.0</TargetPlatformVersion>
+		<TargetPlatformIdentifier>Windows</TargetPlatformIdentifier>
+		<RootNamespace>plugin_OpenVR</RootNamespace>
+		<RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
+		<PublishTrimmed>false</PublishTrimmed>
+		<Platforms>x64</Platforms>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
 
-    <ItemGroup>
-        <TrimmerRootAssembly Include="MessagePack" />
-        <TrimmerRootAssembly Include="Microsoft.VisualStudio.Threading" />
-        <TrimmerRootAssembly Include="Newtonsoft.Json" />
-        <TrimmerRootAssembly Include="StreamJsonRpc" />
-    </ItemGroup>
+	<ItemGroup>
+		<TrimmerRootAssembly Include="MessagePack" />
+		<TrimmerRootAssembly Include="Microsoft.VisualStudio.Threading" />
+		<TrimmerRootAssembly Include="Newtonsoft.Json" />
+		<TrimmerRootAssembly Include="StreamJsonRpc" />
+	</ItemGroup>
 
-    <ItemGroup>
-        <PackageReference Include="Amethyst.Plugins.Contract" Version="0.2.22" />
-        <PackageReference Include="MessagePack" Version="2.5.108" />
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-        <PackageReference Include="StreamJsonRpc" Version="2.15.29" />
-        <PackageReference Include="System.ComponentModel.Composition" Version="8.0.0" />
-        <PackageReference Include="System.ComponentModel.Composition.Registration" Version="8.0.0" />
-        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.4.231115000" />
-        <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.25247-preview" />
-    </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Amethyst.Plugins.Contract" Version="0.2.22" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="System.ComponentModel.Composition" Version="8.0.0" />
+		<PackageReference Include="System.ComponentModel.Composition.Registration" Version="8.0.0" />
+		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.4.231115000" />
+		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.25247-preview" />
+		<PackageReference Include="Vanara.PInvoke.Ole" Version="4.0.0" />
+	</ItemGroup>
 
-    <ItemGroup>
-        <Content Include="Assets\**">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Content>
-        <Compile Include="..\vendor\openvr\headers\openvr_api.cs" Link="vendor\openvr_api.cs">
-            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-        </Compile>
-        <Content Include="..\vendor\openvr\bin\win64\openvr_api.dll" Link="openvr_api.dll">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
+	<ItemGroup>
+		<Content Include="Assets\**">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Compile Include="..\vendor\openvr\headers\openvr_api.cs" Link="vendor\openvr_api.cs">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Compile>
+		<Content Include="..\vendor\openvr\bin\win64\openvr_api.dll" Link="openvr_api.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 
-    <ItemGroup>
-        <ContentWithTargetPath Include="..\vendor\app_resources\action_manifest.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-            <PackageCopyToOutput>true</PackageCopyToOutput>
-            <TargetPath>action_manifest.json</TargetPath>
-        </ContentWithTargetPath>
-        <ContentWithTargetPath Include="..\vendor\app_resources\Amethyst.vrmanifest">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-            <PackageCopyToOutput>true</PackageCopyToOutput>
-            <TargetPath>Amethyst.vrmanifest</TargetPath>
-        </ContentWithTargetPath>
-        <!-- Input bindings -->
-        <ContentWithTargetPath Include="..\vendor\app_resources\input_profiles\k2vr.amethyst_holographic_controller.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-            <PackageCopyToOutput>true</PackageCopyToOutput>
-            <TargetPath>input_profiles\k2vr.amethyst_holographic_controller.json</TargetPath>
-        </ContentWithTargetPath>
-        <ContentWithTargetPath Include="..\vendor\app_resources\input_profiles\k2vr.amethyst_hpmotioncontroller.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-            <PackageCopyToOutput>true</PackageCopyToOutput>
-            <TargetPath>input_profiles\k2vr.amethyst_hpmotioncontroller.json</TargetPath>
-        </ContentWithTargetPath>
-        <ContentWithTargetPath Include="..\vendor\app_resources\input_profiles\k2vr.amethyst_knuckles.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-            <PackageCopyToOutput>true</PackageCopyToOutput>
-            <TargetPath>input_profiles\k2vr.amethyst_knuckles.json</TargetPath>
-        </ContentWithTargetPath>
-        <ContentWithTargetPath Include="..\vendor\app_resources\input_profiles\k2vr.amethyst_oculus_touch.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-            <PackageCopyToOutput>true</PackageCopyToOutput>
-            <TargetPath>input_profiles\k2vr.amethyst_oculus_touch.json</TargetPath>
-        </ContentWithTargetPath>
-        <ContentWithTargetPath Include="..\vendor\app_resources\input_profiles\k2vr.amethyst_vive_controller.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-            <PackageCopyToOutput>true</PackageCopyToOutput>
-            <TargetPath>input_profiles\k2vr.amethyst_vive_controller.json</TargetPath>
-        </ContentWithTargetPath>
-    </ItemGroup>
+	<ItemGroup>
+		<ContentWithTargetPath Include="..\vendor\app_resources\action_manifest.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<PackageCopyToOutput>true</PackageCopyToOutput>
+			<TargetPath>action_manifest.json</TargetPath>
+		</ContentWithTargetPath>
+		<ContentWithTargetPath Include="..\vendor\app_resources\Amethyst.vrmanifest">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<PackageCopyToOutput>true</PackageCopyToOutput>
+			<TargetPath>Amethyst.vrmanifest</TargetPath>
+		</ContentWithTargetPath>
+		<!-- Input bindings -->
+		<ContentWithTargetPath Include="..\vendor\app_resources\input_profiles\k2vr.amethyst_holographic_controller.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<PackageCopyToOutput>true</PackageCopyToOutput>
+			<TargetPath>input_profiles\k2vr.amethyst_holographic_controller.json</TargetPath>
+		</ContentWithTargetPath>
+		<ContentWithTargetPath Include="..\vendor\app_resources\input_profiles\k2vr.amethyst_hpmotioncontroller.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<PackageCopyToOutput>true</PackageCopyToOutput>
+			<TargetPath>input_profiles\k2vr.amethyst_hpmotioncontroller.json</TargetPath>
+		</ContentWithTargetPath>
+		<ContentWithTargetPath Include="..\vendor\app_resources\input_profiles\k2vr.amethyst_knuckles.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<PackageCopyToOutput>true</PackageCopyToOutput>
+			<TargetPath>input_profiles\k2vr.amethyst_knuckles.json</TargetPath>
+		</ContentWithTargetPath>
+		<ContentWithTargetPath Include="..\vendor\app_resources\input_profiles\k2vr.amethyst_oculus_touch.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<PackageCopyToOutput>true</PackageCopyToOutput>
+			<TargetPath>input_profiles\k2vr.amethyst_oculus_touch.json</TargetPath>
+		</ContentWithTargetPath>
+		<ContentWithTargetPath Include="..\vendor\app_resources\input_profiles\k2vr.amethyst_vive_controller.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<PackageCopyToOutput>true</PackageCopyToOutput>
+			<TargetPath>input_profiles\k2vr.amethyst_vive_controller.json</TargetPath>
+		</ContentWithTargetPath>
+	</ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\MessageContract\MessageContract.csproj" />
-    </ItemGroup>
+	<ItemGroup>
+		<Folder Include="Assets\Resources\" />
+	</ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Assets\Resources\" />
-    </ItemGroup>
+	<ItemGroup>
+		<Reference Include="com.driver_Amethyst" Condition="'$(Configuration)'=='Debug'">
+			<HintPath Condition="Exists('bin\Debug\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\')">bin\Debug\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\com.driver_Amethyst.dll</HintPath>
+			<HintPath Condition="Exists('..\x64\Debug\')">..\x64\Debug\com.driver_Amethyst.dll</HintPath>
+			<!--<HintPath>com.driver_Amethyst.dll</HintPath>-->
+		</Reference>
+
+		<Reference Include="com.driver_Amethyst" Condition="'$(Configuration)'=='Release'">
+			<HintPath Condition="Exists('bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\')">bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\com.driver_Amethyst.dll</HintPath>
+			<HintPath Condition="Exists('..\x64\Release\')">..\x64\Release\com.driver_Amethyst.dll</HintPath>
+			<!--<HintPath>com.driver_Amethyst.dll</HintPath>-->
+		</Reference>
+	</ItemGroup>
 </Project>

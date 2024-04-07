@@ -13,46 +13,87 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{1f6135d4-d3d0-4d33-b09e-884a6aaf5c33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interface Files">
+      <UniqueIdentifier>{3e0194e9-fc26-4e90-af0a-fe56db45d0f5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DriverService.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DriverRpcHandler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="BodyTracker.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="AssemblyInfo.cpp">
+    <ClCompile Include="module.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DriverService.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated Files\$(Platform)\driver_Amethyst_i.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated Files\$(Platform)\IDriverService_i.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated Files\$(Platform)\IDriverService_p.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated Files\$(Platform)\IVersionedApi_i.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated Files\$(Platform)\IVersionedApi_p.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated Files\$(Platform)\dlldata.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BodyTracker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ServerProvider.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BodyTracker.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DriverRpcHandler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="app.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
+    <ClInclude Include="DriverService.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated Files\$(Platform)\driver_Amethyst.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated Files\$(Platform)\IDriverService.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated Files\$(Platform)\IVersionedApi.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BodyTracker.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated Files\x64\DataContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Logging.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="app.ico">
+    <None Include="packages.config" />
+    <None Include="vcpkg.json" />
+    <None Include="driver_Amethyst.def">
       <Filter>Resource Files</Filter>
-    </Image>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Midl Include="driver_Amethyst.idl">
+      <Filter>Interface Files</Filter>
+    </Midl>
+    <Midl Include="IDriverService.idl">
+      <Filter>Interface Files</Filter>
+    </Midl>
+    <Midl Include="IVersionedApi.idl">
+      <Filter>Interface Files</Filter>
+    </Midl>
+    <Midl Include="DataContract.idl">
+      <Filter>Interface Files</Filter>
+    </Midl>
   </ItemGroup>
 </Project>

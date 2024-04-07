@@ -17,21 +17,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.Data.Json;
-using Windows.System;
 using Amethyst.Plugins.Contract;
-using MessageContract;
-using MessagePack;
-using MessagePack.Resolvers;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Newtonsoft.Json;
 using plugin_OpenVR.Utils;
-using StreamJsonRpc;
 using Valve.VR;
-using System.Web;
 using Windows.Storage;
+using com.driver_Amethyst;
+using Vanara.PInvoke;
 
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
 // To learn more about WinUI, the WinUI project structure,
@@ -49,9 +45,7 @@ namespace plugin_OpenVR;
 [ExportMetadata("CoreSetupData", typeof(SetupData))]
 public class SteamVR : IServiceEndpoint
 {
-    private NamedPipeClientStream _clientNamedPipeStream;
-    private JsonRpc _driverJsonRpcHandler;
-
+    private IDriverService _driverService;
     private EvrInput.SteamEvrInput _evrInput;
     private uint _vrNotificationId;
 
@@ -368,7 +362,7 @@ public class SteamVR : IServiceEndpoint
         if (!EvrActionsStartup()) serviceStatus = 2;
 
         // Connect to the server driver
-        Task.Run(K2ServerDriverRefreshAsync).Wait();
+        K2ServerDriverRefresh();
 
         // Return the the binding error if the driver is fine
         return ServiceStatus == 0 ? serviceStatus : ServiceStatus;
@@ -400,7 +394,7 @@ public class SteamVR : IServiceEndpoint
             OpenVR.Shutdown(); // Shutdown OpenVR
 
             ServiceStatus = 1; // Update VR status
-            Task.Run(K2ServerDriverRefreshAsync).Wait();
+            K2ServerDriverRefresh();
         }
     }
 
@@ -431,11 +425,8 @@ public class SteamVR : IServiceEndpoint
             if (!Initialized || OpenVR.System is null) return true; // Sanity check
 
             // Auto-returns null if the service is null
-            var restartTask = _driverJsonRpcHandler.InvokeAsync<bool>(nameof(IRpcServer.RequestVrRestart), reason);
-            var result = restartTask.Result;
-
-            restartTask.RunSynchronously();
-            return result; // Wait and return
+            _driverService.RequestVrRestart(reason);
+            return true; // Wait and return
         }
         catch (Exception)
         {
@@ -536,12 +527,14 @@ public class SteamVR : IServiceEndpoint
         try
         {
             // Driver client sanity check: return empty or null if not valid
-            if (!Initialized || OpenVR.System is null || _driverJsonRpcHandler is null || ServiceStatus != 0)
+            if (!Initialized || OpenVR.System is null || _driverService is null || ServiceStatus != 0)
                 return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
 
-            return (await _driverJsonRpcHandler.InvokeAsync<IEnumerable<(TrackerType Tracker, bool Success)>?>(
-                    nameof(IRpcServer.SetTrackerStateList), trackerBases.ToList(), wantReply))?
-                .Select(x => (new TrackerBase { Role = x.Tracker }, x.Success));
+            var enumTrackerBases = trackerBases.ToList();
+            foreach (var trackerBase in enumTrackerBases.ToList())
+                _driverService.SetTrackerState(trackerBase.ComTracker());
+
+            return wantReply ? enumTrackerBases.Select(x => (x, true)) : null;
         }
         catch (Exception e)
         {
@@ -556,15 +549,14 @@ public class SteamVR : IServiceEndpoint
         try
         {
             // Driver client sanity check: return empty or null if not valid
-            if (!Initialized || OpenVR.System is null || _driverJsonRpcHandler is null || ServiceStatus != 0)
+            if (!Initialized || OpenVR.System is null || _driverService is null || ServiceStatus != 0)
                 return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
 
-            await _driverJsonRpcHandler.InvokeWithCancellationAsync<IEnumerable<(TrackerType Tracker, bool Success)>?>(
-                nameof(IRpcServer.UpdateTrackerList), new object[] { trackerBases.ToList(), wantReply },
-                token ?? CancellationToken.None);
+            var enumTrackerBases = trackerBases.ToList();
+            foreach (var trackerBase in enumTrackerBases.ToList())
+                _driverService.UpdateTracker(trackerBase.ComTracker());
 
-            // Discard the result to save resources, as it's not even used anywhere
-            return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
+            return wantReply ? enumTrackerBases.Select(x => (x, true)) : null;
         }
         catch (Exception e)
         {
@@ -581,20 +573,21 @@ public class SteamVR : IServiceEndpoint
             UpdateBindingTexts();
 
             // Refresh the driver, just in case
-            await K2ServerDriverRefreshAsync();
+            K2ServerDriverRefresh();
 
             // Driver client sanity check: return empty or null if not valid
-            if (!Initialized || OpenVR.System is null || _driverJsonRpcHandler is null ||
+            if (!Initialized || OpenVR.System is null || _driverService is null ||
                 ServiceStatus != 0) return (-1, "SERVICE_INVALID", 0);
 
             // Grab the current time and send the message
             var messageSendTimeStopwatch = new Stopwatch();
 
             messageSendTimeStopwatch.Start();
-            await _driverJsonRpcHandler.InvokeAsync<DateTime>(nameof(IRpcServer.PingDriverService));
+            _driverService.PingDriverService(out var ms);
             messageSendTimeStopwatch.Stop();
 
             // Return tuple with response and elapsed time
+            Host.Log($"Ping: {ms - DateTimeOffset.Now.ToUnixTimeMilliseconds()}ms");
             return (0, "OK", messageSendTimeStopwatch.ElapsedTicks);
         }
         catch (Exception e)
@@ -952,39 +945,28 @@ public class SteamVR : IServiceEndpoint
 
     #region Amethyst VRDriver Methods
 
-    private async Task<int> InitAmethystServerAsync(string target = "E8F6C6A4-9911-4541-A5F5-7DAAE97ADDAF")
+    private int InitAmethystServerAsync(string target = "BA32B754-20E3-4C8C-913B-28BBAC30531B")
     {
         try
         {
-            Host?.Log("Creating the server handle...");
-            _clientNamedPipeStream = new NamedPipeClientStream(".",
-                target, PipeDirection.InOut, PipeOptions.Asynchronous);
+            Host?.Log("Registering the COM proxy/stub...");
+            ((HRESULT)DriverHelper.InstallProxyStub()).ThrowIfFailed();
 
-            Host?.Log("Connecting to the server...");
-            await _clientNamedPipeStream.ConnectAsync(1000);
+            Host?.Log("Searching for the COM driver service...");
+            var guid = Guid.Parse(target);
 
-            Host?.Log("Setting up serialization resolvers...");
-            var resolver = CompositeResolver.Create(
-                NumericsResolver.Instance,
-                StandardResolver.Instance
-            );
+            DriverHelper.GetActiveObject(ref guid, IntPtr.Zero, out var service);
 
-            Host?.Log("Preparing the formatter...");
-            var formatter = new MessagePackFormatter();
-            formatter.SetMessagePackSerializerOptions(
-                MessagePackSerializerOptions.Standard.WithResolver(resolver));
+            Host?.Log($"Trying to cast the service into {typeof(IDriverService)}...");
+            _driverService = (IDriverService)service;
 
-            Host?.Log("Instantiating the rpc handler...");
-            _driverJsonRpcHandler = new JsonRpc(new LengthHeaderMessageHandler(
-                _clientNamedPipeStream, _clientNamedPipeStream, formatter))
-            {
-                TraceSource = new TraceSource("Client", SourceLevels.Verbose)
-            };
-
-            _driverJsonRpcHandler.TraceSource.Listeners.Add(new ConsoleTraceListener());
-
-            Host?.Log("Starting the listener...");
-            _driverJsonRpcHandler.StartListening();
+            Host?.Log($"{nameof(service)} is {typeof(IDriverService)}!");
+        }
+        catch (COMException e)
+        {
+            Host?.Log(e.ToString(), LogSeverity.Error);
+            ServerDriverException = e;
+            return -1;
         }
         catch (TimeoutException e)
         {
@@ -1002,7 +984,7 @@ public class SteamVR : IServiceEndpoint
         return 0;
     }
 
-    private async Task<int> CheckK2ServerStatusAsync()
+    private int CheckK2ServerStatusAsync()
     {
         // Don't check if OpenVR failed
         if (ServiceStatus == 1) return 1;
@@ -1011,7 +993,7 @@ public class SteamVR : IServiceEndpoint
         {
             /* Initialize the port */
             Host.Log("Initializing the server IPC...");
-            var initCode = await InitAmethystServerAsync();
+            var initCode = InitAmethystServerAsync();
 
             Host.Log($"Server IPC initialization {(initCode == 0 ? "succeed" : "failed")}, exit code: {initCode}",
                 initCode == 0 ? LogSeverity.Info : LogSeverity.Error);
@@ -1025,17 +1007,24 @@ public class SteamVR : IServiceEndpoint
                 if (initCode != 0)
                     return initCode;
 
-                if (_driverJsonRpcHandler is null)
+                if (_driverService is null)
                     return -2;
 
                 // Grab the current time and send the message
-                await _driverJsonRpcHandler.InvokeAsync<DateTime>(
-                    nameof(IRpcServer.PingDriverService));
+                _driverService.PingDriverService(out var ms);
+                Host.Log($"Ping: {ms - DateTimeOffset.Now.ToUnixTimeMilliseconds()}ms");
 
                 return 0; // Everything should be fine
             }
+            catch (COMException e)
+            {
+                Host.Log(e.ToString(), LogSeverity.Error);
+                ServerDriverException = e;
+                return -1;
+            }
             catch (Exception e)
             {
+                Host.Log(e.ToString(), LogSeverity.Error);
                 ServerDriverException = e;
                 return -10;
             }
@@ -1061,9 +1050,9 @@ public class SteamVR : IServiceEndpoint
          */
     }
 
-    private async Task K2ServerDriverRefreshAsync()
+    private void K2ServerDriverRefresh()
     {
-        ServiceStatus = await CheckK2ServerStatusAsync();
+        ServiceStatus = CheckK2ServerStatusAsync();
 
         // Request a quick status refresh
         Host?.RefreshStatusInterface();
@@ -1394,6 +1383,38 @@ public class SteamVR : IServiceEndpoint
 
 public static class OvrExtensions
 {
+    public static dTrackerBase ComTracker(this TrackerBase tracker)
+    {
+        return new dTrackerBase
+        {
+            ConnectionState = Convert.ToSByte(tracker.ConnectionState),
+            Serial = tracker.Serial,
+            Role = (dTrackerType)tracker.Role,
+            Position = tracker.Position.ComVector(),
+            Orientation = tracker.Orientation.ComQuaternion(),
+            Velocity = tracker.Velocity.ComVector(),
+            Acceleration = tracker.Acceleration.ComVector(),
+            AngularVelocity = tracker.AngularVelocity.ComVector(),
+            AngularAcceleration = tracker.AngularAcceleration.ComVector()
+        };
+    }
+
+    public static dVector3 ComVector(this Vector3 v)
+    {
+        return new dVector3 { X = v.X, Y = v.Y, Z = v.Z };
+    }
+
+    public static dVector3Nullable ComVector(this Vector3? v)
+    {
+        return new dVector3Nullable
+            { HasValue = Convert.ToSByte(v.HasValue), Value = v?.ComVector() ?? new dVector3() };
+    }
+
+    public static dQuaternion ComQuaternion(this Quaternion q)
+    {
+        return new dQuaternion { X = q.X, Y = q.Y, Z = q.Z, W = q.W };
+    }
+
     public static Vector3 GetPosition(this HmdMatrix34_t mat)
     {
         return new Vector3(mat.m3, mat.m7, mat.m11);

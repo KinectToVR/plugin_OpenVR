@@ -1,0 +1,12 @@
+import "unknwn.idl";
+import "DataContract.idl";
+
+[object, uuid(73B047A0-40A4-4D23-A5D3-5F7A87156E12)]
+interface IDriverService : IUnknown
+{
+ HRESULT SetTrackerState([in] struct dTrackerBase tracker);
+ HRESULT UpdateTracker([in] struct dTrackerBase tracker);
+
+ HRESULT RequestVrRestart([in, string] wchar_t* message);
+ HRESULT PingDriverService([out] __int64* ms);
+};
