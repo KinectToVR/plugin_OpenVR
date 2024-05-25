@@ -69,8 +69,8 @@ xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\ne
     <PreBuildEvent>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">powershell -Command New-Item -ItemType Directory -Force -Path '$(IntDirFullPath)Generated Files\MIDL\'
 
-powershell -Command midl '$(ProjectDir)$(ProjectName).idl' /tlb '$(IntDirFullPath)Generated Files\MIDL\$(ProjectName).tlb' /I '$(ProjectDir)'
-powershell -Command tlbimp '$(IntDirFullPath)Generated Files\MIDL\$(ProjectName).tlb' /out:'$(OutDir)com.$(ProjectName).dll'</Command>
+powershell -Command midl /amd64 '$(ProjectDir)$(ProjectName).idl' /tlb '$(IntDirFullPath)Generated Files\MIDL\$(ProjectName).tlb' /I '$(ProjectDir)'
+powershell -Command tlbimp '$(IntDirFullPath)Generated Files\MIDL\$(ProjectName).tlb' /machine:x64 /out:'$(OutDir)com.$(ProjectName).dll'</Command>
     </PreBuildEvent>
     <Link>
       <AdditionalLibraryDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)vendor\openvr\lib\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
