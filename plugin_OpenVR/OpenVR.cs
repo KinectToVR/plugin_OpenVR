@@ -1388,6 +1388,7 @@ public static class OvrExtensions
         return new dTrackerBase
         {
             ConnectionState = Convert.ToSByte(tracker.ConnectionState),
+            TrackingState = Convert.ToSByte(tracker.TrackingState != TrackedJointState.StateNotTracked),
             Serial = tracker.Serial,
             Role = (dTrackerType)tracker.Role,
             Position = tracker.Position.ComVector(),

@@ -172,7 +172,7 @@ public:
 
 private:
     // Is tracker added/active
-    bool _added = false, _active = false;
+    bool _added = false, _active = false, _valid = false;
     bool _activated = false;
 
     // Stores the openvr supplied device index.

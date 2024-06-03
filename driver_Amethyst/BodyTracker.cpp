@@ -66,7 +66,7 @@ void BodyTracker::update()
     if (_index != vr::k_unTrackedDeviceIndexInvalid && _activated)
     {
         // If _active is false, then disconnect the tracker
-        _pose.poseIsValid = _active;
+        _pose.poseIsValid = _valid;
         _pose.deviceIsConnected = _active;
 
         vr::VRServerDriverHost()->TrackedDevicePoseUpdated(_index, _pose, sizeof _pose);
@@ -81,6 +81,7 @@ bool BodyTracker::set_pose(dTrackerBase const& tracker)
         _pose.vecPosition[0] = tracker.Position.X;
         _pose.vecPosition[1] = tracker.Position.Y;
         _pose.vecPosition[2] = tracker.Position.Z;
+        _valid = tracker.TrackingState;
 
         // Rotation
         _pose.qRotation.w = tracker.Orientation.W;

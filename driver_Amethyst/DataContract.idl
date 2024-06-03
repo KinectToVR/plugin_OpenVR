@@ -41,6 +41,7 @@ struct dQuaternion
 struct dTrackerBase 
 {
  boolean ConnectionState;
+ boolean TrackingState;
  [string] char* Serial;
 
  enum dTrackerType Role;
