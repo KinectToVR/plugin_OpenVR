@@ -30,7 +30,7 @@ internal class SetupData : ICoreSetupData
 
 internal class DriverInstaller : IDependencyInstaller
 {
-    public IDependencyInstaller.ILocalizationHost Host { get; set; }
+	public IDependencyInstaller.ILocalizationHost Host { get; set; }
 
     public List<IDependency> ListDependencies()
     {
@@ -43,6 +43,8 @@ internal class DriverInstaller : IDependencyInstaller
             }
         };
     }
+
+    public List<IFix> ListFixes() => new();
 }
 
 internal class VrDriver : IDependency
