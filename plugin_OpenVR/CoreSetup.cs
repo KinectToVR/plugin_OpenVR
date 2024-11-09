@@ -34,17 +34,17 @@ internal class DriverInstaller : IDependencyInstaller
 
     public List<IDependency> ListDependencies()
     {
-        return new List<IDependency>
-        {
+        return
+        [
             new VrDriver
             {
                 Host = Host,
                 Name = Host?.RequestLocalizedString("/Dependencies/Driver") ?? "OpenVR Driver"
             }
-        };
+        ];
     }
 
-    public List<IFix> ListFixes() => new();
+    public List<IFix> ListFixes() => [];
 }
 
 internal class VrDriver : IDependency

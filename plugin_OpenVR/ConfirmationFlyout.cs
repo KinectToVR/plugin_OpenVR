@@ -1,20 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Documents;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
 using Amethyst.Plugins.Contract;
 using Microsoft.UI.Text;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -24,45 +18,18 @@ namespace plugin_OpenVR;
 
 public sealed class ConfirmationFlyout : Flyout
 {
-    private Button ConfirmButton { get; }
-    private Button CancelButton { get; }
-    private bool ConfirmationFlyoutResult { get; set; }
-
-    private static SemaphoreSlim FlyoutExitSemaphore { get; } = new(0);
-
-    public static async Task<bool> HandleButtonConfirmationFlyout(
-        UIElement showAtElement, IAmethystHost host,
-        string content, string confirmButtonText, string cancelButtonText)
-    {
-        var flyout = new ConfirmationFlyout(content, confirmButtonText, cancelButtonText);
-
-        flyout.Closed += (_, _) => FlyoutExitSemaphore.Release();
-        flyout.Opening += (_, _) => host?.PlayAppSound(SoundType.Show);
-        flyout.Closing += (_, _) => host?.PlayAppSound(SoundType.Hide);
-
-        // Show the confirmation flyout
-        flyout.ShowAt(showAtElement, new FlyoutShowOptions { Placement = FlyoutPlacementMode.Bottom });
-
-        // Wait for the flyout to close
-        await FlyoutExitSemaphore.WaitAsync();
-
-        // Wait a bit
-        await Task.Delay(1200);
-
-        // Return the result
-        return flyout.ConfirmationFlyoutResult;
-    }
-
     public ConfirmationFlyout(string content, string confirmButtonText, string cancelButtonText)
     {
         ConfirmButton = new Button
         {
             Content = confirmButtonText,
             Visibility = (Visibility)Convert.ToInt32(string.IsNullOrEmpty(confirmButtonText)),
-            FontSize = 15, FontWeight = FontWeights.SemiBold,
+            FontSize = 15,
+            FontWeight = FontWeights.SemiBold,
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
-            Height = 33, Margin = new Thickness(0, 10, 5, 0),
+            Height = 33,
+            Margin = new Thickness(0, 10, 5, 0),
             CornerRadius = new CornerRadius(4),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
@@ -73,10 +40,12 @@ public sealed class ConfirmationFlyout : Flyout
         {
             Content = cancelButtonText,
             Visibility = (Visibility)Convert.ToInt32(string.IsNullOrEmpty(cancelButtonText)),
-            FontSize = 15, FontWeight = FontWeights.SemiBold,
+            FontSize = 15,
+            FontWeight = FontWeights.SemiBold,
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
-            Height = 33, Margin = new Thickness(5, 10, 0, 0),
+            Height = 33,
+            Margin = new Thickness(5, 10, 0, 0),
             CornerRadius = new CornerRadius(4),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch
@@ -124,5 +93,34 @@ public sealed class ConfirmationFlyout : Flyout
 
         Grid.SetColumn(ConfirmButton, 0);
         Grid.SetColumn(CancelButton, 1);
+    }
+
+    private Button ConfirmButton { get; }
+    private Button CancelButton { get; }
+    private bool ConfirmationFlyoutResult { get; set; }
+
+    private static SemaphoreSlim FlyoutExitSemaphore { get; } = new(0);
+
+    public static async Task<bool> HandleButtonConfirmationFlyout(
+        UIElement showAtElement, IAmethystHost host,
+        string content, string confirmButtonText, string cancelButtonText)
+    {
+        var flyout = new ConfirmationFlyout(content, confirmButtonText, cancelButtonText);
+
+        flyout.Closed += (_, _) => FlyoutExitSemaphore.Release();
+        flyout.Opening += (_, _) => host?.PlayAppSound(SoundType.Show);
+        flyout.Closing += (_, _) => host?.PlayAppSound(SoundType.Hide);
+
+        // Show the confirmation flyout
+        flyout.ShowAt(showAtElement, new FlyoutShowOptions { Placement = FlyoutPlacementMode.Bottom });
+
+        // Wait for the flyout to close
+        await FlyoutExitSemaphore.WaitAsync();
+
+        // Wait a bit
+        await Task.Delay(1200);
+
+        // Return the result
+        return flyout.ConfirmationFlyoutResult;
     }
 }

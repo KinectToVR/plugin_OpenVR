@@ -10,6 +10,7 @@
 		<Platforms>x64</Platforms>
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<LangVersion>latest</LangVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -20,7 +21,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Amethyst.Plugins.Contract" Version="0.2.25" />
+		<PackageReference Include="Amethyst.Plugins.Contract" Version="0.3.32-alpha" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.11.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="System.ComponentModel.Composition" Version="8.0.0" />
 		<PackageReference Include="System.ComponentModel.Composition.Registration" Version="8.0.0" />
@@ -33,6 +35,7 @@
 		<Content Include="Assets\**">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
+		<None Remove="Pages\SettingsPage.xaml" />
 		<Compile Include="..\vendor\openvr\headers\openvr_api.cs" Link="vendor\openvr_api.cs">
 			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
 		</Compile>
@@ -97,4 +100,19 @@
 			<!--<HintPath>com.driver_Amethyst.dll</HintPath>-->
 		</Reference>
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Page Update="Pages\SettingsPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
+	</ItemGroup>
+
+	<Target Name="XamlCopy" AfterTargets="Publish">
+		<ItemGroup>
+			<_CustomFiles1 Include="$(ProjectDir)$(OutDir)$(ProjectName)\Pages\*.*" />
+			<_CustomFiles2 Include="$(ProjectDir)$(OutDir)$(ProjectName).pri" />
+		</ItemGroup>
+		<Copy SourceFiles="@(_CustomFiles1)" DestinationFolder="$(PublishDir)\Pages" />
+		<Copy SourceFiles="@(_CustomFiles2)" DestinationFiles="$(PublishDir)\resources.pri" />
+	</Target>
 </Project>

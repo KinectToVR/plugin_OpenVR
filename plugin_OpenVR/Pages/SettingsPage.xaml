@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<UserControl x:Class="plugin_OpenVR.Pages.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+		<Button Grid.Column="0" x:Name="CustomActionsButton" Height="40"
+		        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+			<Button.Flyout>
+				<Flyout Placement="Full"
+				        Opening="ActionsFlyout_OnOpening"
+				        Closing="ActionsFlyout_OnClosing">
+
+					<Flyout.FlyoutPresenterStyle>
+						<Style TargetType="FlyoutPresenter">
+							<Setter Property="MaxHeight" Value="500" />
+							<Setter Property="MaxWidth" Value="820" />
+							<Setter Property="MinWidth" Value="820" />
+							<Setter Property="Margin" Value="30,15,0,0" />
+							<Setter Property="CornerRadius" Value="8" />
+							<Setter Property="Background"
+							        Value="{ThemeResource AcrylicInAppFillColorDefaultBrush}" />
+						</Style>
+					</Flyout.FlyoutPresenterStyle>
+
+					<!--Outer grid-->
+					<Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+					      MaxWidth="790" MinWidth="790" MaxHeight="475" MinHeight="475"
+					      DataContext="{x:Bind}">
+
+						<!--Inner grid-->
+						<Grid VerticalAlignment="Stretch" MaxWidth="790" MinWidth="790"
+						      MaxHeight="475" MinHeight="475" Padding="0,6"
+						      ColumnDefinitions="170,40,*" DataContext="{x:Bind}">
+							<Grid.Transitions>
+								<TransitionCollection>
+									<EntranceThemeTransition />
+								</TransitionCollection>
+							</Grid.Transitions>
+
+							<!--The selector part-->
+							<Grid Grid.Column="0" RowDefinitions="*,Auto" Margin="-20"
+							      Style="{ThemeResource GridCardSingleStyle}" CornerRadius="0">
+
+								<ScrollViewer HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+								              VerticalScrollBarVisibility="Visible" Grid.Row="0"
+								              Padding="20,0, 13, 0" Margin="-20,0, -15, 0">
+									<TreeView x:Name="ActionsTreeView" CanDragItems="False" CanReorderItems="False"
+									          ItemInvoked="ActionsTreeView_OnItemInvoked" />
+								</ScrollViewer>
+							</Grid>
+
+							<!--The preview part-->
+							<Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
+								<TextBlock FontWeight="SemiBold" Text="{x:Bind SelectedActionName, Mode=OneWay}"
+								           VerticalAlignment="Top" HorizontalAlignment="Left"
+								           FontSize="26" Margin="0,-7,0,0" />
+
+								<Button Style="{ThemeResource AccentButtonStyle}"
+								        Click="ActionTestButton_OnClick"
+								        Content="{x:Bind GetString('/InputActions/Buttons/Test'), Mode=OneWay}"
+								        HorizontalAlignment="Right" VerticalAlignment="Top"
+								        Grid.Row="0" Margin="0,-2,0,0" />
+
+								<!--"Select to preview" grid-->
+								<Grid Grid.Row="2" Opacity="0.75" Visibility="{x:Bind SelectedActionInvalid, Mode=OneWay}">
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="*" />
+										<ColumnDefinition Width="8*" MinWidth="250" MaxWidth="500" />
+										<ColumnDefinition Width="*" />
+									</Grid.ColumnDefinitions>
+									<StackPanel Grid.Column="1" Orientation="Vertical" VerticalAlignment="Center"
+									            HorizontalAlignment="Center" Margin="0,-35,0,0">
+										<FontIcon FontSize="120" Margin="0,0,0,25" Glyph="&#xE707;" />
+										<TextBlock HorizontalAlignment="Center" TextWrapping="WrapWholeWords"
+										           FontSize="14"
+										           HorizontalTextAlignment="Center"
+										           TextTrimming="CharacterEllipsis"
+										           Text="{x:Bind GetString('/InputActions/Picker/NoSelection'), Mode=OneWay}" />
+									</StackPanel>
+									<Grid.OpacityTransition>
+										<ScalarTransition />
+									</Grid.OpacityTransition>
+								</Grid>
+
+								<!--Actual preview data-->
+								<Grid Grid.Row="2" RowDefinitions="Auto, *, Auto"
+								      Visibility="{x:Bind SelectedActionValid, Mode=OneWay}">
+
+									<TextBlock HorizontalAlignment="Left" TextWrapping="WrapWholeWords"
+									           FontSize="14" Grid.Row="0" HorizontalTextAlignment="Left"
+									           Text="{x:Bind SelectedActionDescription, Mode=OneWay}" Opacity="0.75" />
+
+									<TextBox Grid.Row="2" x:Name="ActionCodeBox"
+									         PlaceholderText="{x:Bind GetString('/InputActions/Code/Input'), Mode=OneWay}" />
+
+									<TextBox Grid.Row="2" x:Name="TestResultsBox" IsReadOnly="True"
+									         Text="{x:Bind GetString('/InputActions/Code/Test'), Mode=OneWay}" />
+								</Grid>
+							</Grid>
+						</Grid>
+					</Grid>
+				</Flyout>
+			</Button.Flyout>
+		</Button>
+
+		<SplitButton Grid.Column="1" x:Name="ReRegisterButton" Height="40"
+		             HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+		             Click="ReRegisterButton_OnClick">
+			<Grid HorizontalAlignment="Stretch" VerticalAlignment="Bottom">
+
+				<TextBlock TextTrimming="CharacterEllipsis" FontSize="16" FontWeight="SemiBold"
+				           HorizontalAlignment="Center" VerticalAlignment="Center"
+				           Text="{x:Bind GetString('/SettingsPage/Buttons/ReRegister')}" />
+
+				<ProgressBar x:Name="ReRegisterButtonBar" IsIndeterminate="True"
+				             Opacity="0.0" Margin="-11,0,-11,-9"
+				             HorizontalAlignment="Stretch" VerticalAlignment="Bottom">
+					<ProgressBar.OpacityTransition>
+						<ScalarTransition />
+					</ProgressBar.OpacityTransition>
+				</ProgressBar>
+			</Grid>
+
+			<SplitButton.Flyout>
+				<Flyout Placement="Bottom">
+					<Button x:Name="ReManifestButton" Height="40"
+					        HorizontalAlignment="Stretch" Click="ReManifestButton_OnClick">
+						<TextBlock TextTrimming="CharacterEllipsis" FontSize="16" FontWeight="SemiBold"
+						           Text="{x:Bind GetString('/SettingsPage/Buttons/ReManifest')}" />
+						<Button.Resources>
+							<Flyout x:Name="ActionFailedFlyout" Placement="Bottom"
+							        Opening="ActionFailedFlyout_OnOpening"
+							        Closing="ActionFailedFlyout_OnClosing" />
+						</Button.Resources>
+					</Button>
+				</Flyout>
+			</SplitButton.Flyout>
+		</SplitButton>
+	</Grid>
+</UserControl>

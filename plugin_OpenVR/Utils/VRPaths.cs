@@ -15,7 +15,7 @@ internal class OpenVrPaths
     public static OpenVrPaths Read()
     {
         var temp = JsonFile.Read<OpenVrPaths>(Path);
-        temp.external_drivers ??= new List<string>();
+        temp.external_drivers ??= [];
 
         return temp;
     }
@@ -28,7 +28,7 @@ internal class OpenVrPaths
     // Prevent Warning CS0649: Field '...' is never assigned to, and will always have its default value null:
 #pragma warning disable 0649
     public List<string> config;
-    public List<string> external_drivers = new();
+    public List<string> external_drivers = [];
     public string jsonid;
     public List<string> log;
     public List<string> runtime;
