@@ -15,7 +15,6 @@ using System.Threading.Tasks;
 using Amethyst.Plugins.Contract;
 using com.driver_Amethyst;
 using Microsoft.UI.Xaml.Controls;
-using plugin_OpenVR.MVVM;
 using plugin_OpenVR.Pages;
 using plugin_OpenVR.Utils;
 using Valve.VR;
@@ -38,10 +37,10 @@ namespace plugin_OpenVR;
 public class SteamVR : IServiceEndpoint
 {
     private IDriverService _driverService;
-    private SteamEvrInput _evrInput;
     private uint _vrNotificationId;
-
     private ulong _vrOverlayHandle = OpenVR.k_ulOverlayHandleInvalid;
+
+    public SteamEvrInput VrInput { get; set; }
     public static bool Initialized { get; private set; }
     private static object InitLock { get; } = new();
 
@@ -59,6 +58,8 @@ public class SteamVR : IServiceEndpoint
     private bool ServerDriverPresent => ServiceStatus == 0;
 
     [Import(typeof(IAmethystHost))] private IAmethystHost Host { get; set; }
+
+    public static IAmethystHost HostStatic { get; set; }
 
     public bool CanAutoStartAmethyst => true;
 
@@ -105,16 +106,6 @@ public class SteamVR : IServiceEndpoint
             _ => Host.RequestLocalizedString("/ServerStatuses/WTF")
         }
         : $"Undefined: {ServiceStatus}\nE_UNDEFINED\nSomething weird has happened, though we can't tell what.";
-
-    public List<CustomInputAction> CustomInputActions =
-    [
-        new() { DataType = typeof(bool), Handle = "/actions/default/in/UserBooleanAction1" },
-        new() { DataType = typeof(bool), Handle = "/actions/default/in/UserBooleanAction2" },
-        new() { DataType = typeof(bool), Handle = "/actions/default/in/UserBooleanAction3" },
-        new() { DataType = typeof(bool), Handle = "/actions/default/in/UserBooleanAction4" },
-        new() { DataType = typeof(Vector2), Handle = "/actions/default/in/UserCoordAction1" },
-        new() { DataType = typeof(Vector2), Handle = "/actions/default/in/UserCoordAction2" }
-    ];
 
     public Uri ErrorDocsUri => new(ServiceStatus switch
     {
@@ -224,14 +215,14 @@ public class SteamVR : IServiceEndpoint
 
     public void OnLoad()
     {
-        _evrInput ??= new SteamEvrInput(Host);
+        VrInput ??= new SteamEvrInput(Host);
         Settings ??= new SettingsPage { DataParent = this, Host = Host };
         InterfaceRoot = new Page
         {
             Content = Settings
         };
 
-        CustomInputActions.ForEach(x => x.Host ??= Host);
+        HostStatic = Host;
         PluginLoaded = true;
     }
 
@@ -674,7 +665,7 @@ public class SteamVR : IServiceEndpoint
     {
         Host.Log("Attempting to set up EVR Input Actions...");
 
-        if (!_evrInput.InitInputActions())
+        if (!VrInput.InitInputActions())
         {
             Host.Log("Could not set up Input Actions. Please check the upper log for further information.",
                 LogSeverity.Error);
@@ -693,17 +684,17 @@ public class SteamVR : IServiceEndpoint
         if (!Initialized || OpenVR.System is null) return;
 
         // Backup the current (OLD) data
-        var bFreezeState = _evrInput.TrackerFreezeActionData;
-        var bFlipToggleState = _evrInput.TrackerFlipToggleData;
+        var bFreezeState = VrInput.TrackerFreezeActionData;
+        var bFlipToggleState = VrInput.TrackerFlipToggleData;
 
         // Update all input actions
-        if (!_evrInput.UpdateActionStates())
+        if (!VrInput.UpdateActionStates())
             Host.Log("Could not update EVR Input Actions. Please check logs for further information",
                 LogSeverity.Error);
 
         // Update the Tracking Freeze : toggle
         // Only if the state has changed from 1 to 0: button was clicked
-        if (!_evrInput.TrackerFreezeActionData && bFreezeState)
+        if (!VrInput.TrackerFreezeActionData && bFreezeState)
         {
             Host.Log("[Input Actions] Input: Tracking freeze toggled");
             ControllerInputActions.TrackingFreezeToggled?.Invoke(this, EventArgs.Empty);
@@ -711,7 +702,7 @@ public class SteamVR : IServiceEndpoint
 
         // Update the Flip Toggle : toggle
         // Only if the state has changed from 1 to 0: button was clicked
-        if (!_evrInput.TrackerFlipToggleData && bFlipToggleState)
+        if (!VrInput.TrackerFlipToggleData && bFlipToggleState)
         {
             Host.Log("[Input Actions] Input: Flip toggled");
             ControllerInputActions.SkeletonFlipToggled?.Invoke(this, EventArgs.Empty);
@@ -719,27 +710,27 @@ public class SteamVR : IServiceEndpoint
 
         // Update the Calibration:Confirm : one-time switch
         // Only one-way switch this time, reset at calibration's end
-        if (_evrInput.ConfirmAndSaveActionData)
+        if (VrInput.ConfirmAndSaveActionData)
             ControllerInputActions.CalibrationConfirmed?.Invoke(this, EventArgs.Empty);
 
         // Update the Calibration:ModeSwap : one-time switch
         // Only if the state has changed from 1 to 0: chord was done
-        if (_evrInput.ModeSwapActionData)
+        if (VrInput.ModeSwapActionData)
             ControllerInputActions.CalibrationModeChanged?.Invoke(this, EventArgs.Empty);
 
         // Update the Calibration:FineTune : held switch
-        var posMultiplexer = _evrInput.FineTuneActionData ? .0015f : .015f;
-        var rotMultiplexer = _evrInput.FineTuneActionData ? .1f : 1f;
+        var posMultiplexer = VrInput.FineTuneActionData ? .0015f : .015f;
+        var rotMultiplexer = VrInput.FineTuneActionData ? .1f : 1f;
 
         // Update the Calibration:Joystick : vector2 x2
         ControllerInputActions.MovePositionValues =
-            new Vector3(_evrInput.LeftJoystickActionData.X * posMultiplexer,
-                _evrInput.RightJoystickActionData.Y * posMultiplexer,
-                -_evrInput.LeftJoystickActionData.Y * posMultiplexer);
+            new Vector3(VrInput.LeftJoystickActionData.X * posMultiplexer,
+                VrInput.RightJoystickActionData.Y * posMultiplexer,
+                -VrInput.LeftJoystickActionData.Y * posMultiplexer);
 
         ControllerInputActions.AdjustRotationValues =
-            new Vector2(_evrInput.RightJoystickActionData.Y * MathF.PI / 280f * rotMultiplexer,
-                -_evrInput.LeftJoystickActionData.X * MathF.PI / 280f * rotMultiplexer);
+            new Vector2(VrInput.RightJoystickActionData.Y * MathF.PI / 280f * rotMultiplexer,
+                -VrInput.LeftJoystickActionData.X * MathF.PI / 280f * rotMultiplexer);
     }
 
     private void ParseVrEvents()

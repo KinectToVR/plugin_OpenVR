@@ -6,6 +6,7 @@
 
 	<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
 		<Button Grid.Column="0" x:Name="CustomActionsButton" Height="40"
+		        Content="{x:Bind GetString('/InputActions/Buttons/View'), Mode=OneWay}"
 		        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
 			<Button.Flyout>
 				<Flyout Placement="Full"
@@ -49,17 +50,36 @@
 									<TreeView x:Name="ActionsTreeView" CanDragItems="False" CanReorderItems="False"
 									          ItemInvoked="ActionsTreeView_OnItemInvoked" />
 								</ScrollViewer>
+
+								<StackPanel Orientation="Vertical" Grid.Row="1">
+									<MenuFlyoutItem Text="{x:Bind GetString('/InputActions/Picker/Options/New'), Mode=OneWay}"
+									                Click="NewActionItem_OnClick" />
+								</StackPanel>
 							</Grid>
 
 							<!--The preview part-->
 							<Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
 								<TextBlock FontWeight="SemiBold" Text="{x:Bind SelectedActionName, Mode=OneWay}"
+								           Visibility="{x:Bind IsAddingNewActionInverse, Mode=OneWay}"
 								           VerticalAlignment="Top" HorizontalAlignment="Left"
 								           FontSize="26" Margin="0,-7,0,0" />
 
+								<TextBox FontWeight="SemiBold" Text="{x:Bind SelectedActionName, Mode=TwoWay}"
+								         Visibility="{x:Bind IsAddingNewAction, Mode=OneWay}"
+								         VerticalAlignment="Top" HorizontalAlignment="Left"
+								         FontSize="26" Margin="0,-7,0,0" />
+
 								<Button Style="{ThemeResource AccentButtonStyle}"
 								        Click="ActionTestButton_OnClick"
+										Visibility="{x:Bind IsAddingNewActionInverse, Mode=OneWay}"
 								        Content="{x:Bind GetString('/InputActions/Buttons/Test'), Mode=OneWay}"
+								        HorizontalAlignment="Right" VerticalAlignment="Top"
+								        Grid.Row="0" Margin="0,-2,0,0" />
+
+								<Button Style="{ThemeResource AccentButtonStyle}"
+								        Click="AddNewAction_OnClick"
+										Visibility="{x:Bind IsAddingNewAction, Mode=OneWay}"
+								        Content="{x:Bind GetString('/InputActions/Buttons/Add'), Mode=OneWay}"
 								        HorizontalAlignment="Right" VerticalAlignment="Top"
 								        Grid.Row="0" Margin="0,-2,0,0" />
 
@@ -92,10 +112,11 @@
 									           FontSize="14" Grid.Row="0" HorizontalTextAlignment="Left"
 									           Text="{x:Bind SelectedActionDescription, Mode=OneWay}" Opacity="0.75" />
 
-									<TextBox Grid.Row="2" x:Name="ActionCodeBox"
+									<TextBox Grid.Row="2" Text="{x:Bind SelectedActionCode, Mode=TwoWay}"
 									         PlaceholderText="{x:Bind GetString('/InputActions/Code/Input'), Mode=OneWay}" />
 
 									<TextBox Grid.Row="2" x:Name="TestResultsBox" IsReadOnly="True"
+											 IsEnabled="{x:Bind IsAddingNewActionInverse, Mode=OneWay}"
 									         Text="{x:Bind GetString('/InputActions/Code/Test'), Mode=OneWay}" />
 								</Grid>
 							</Grid>

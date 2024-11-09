@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -84,13 +82,15 @@ public class ActionsManifest(bool wasNull = false)
         }
     ];
 
+    public Action this[string path] => Actions.FirstOrDefault(x => x.Name == path);
+
     public class DefaultBindings(string controllerType = "", string path = "")
     {
         [JsonProperty("controller_type")] public string ControllerType { get; set; } = controllerType;
         [JsonProperty("binding_url")] public string Binding { get; set; } = path;
     }
 
-    public class Action(string name = "", string type = "boolean", string requirement = null, IAmethystHost host = null)
+    public class Action(string name = "", string type = "boolean", string requirement = null)
     {
         [JsonProperty("name")] public string Name { get; set; } = name;
         [JsonProperty("type")] public string Type { get; set; } = type;
@@ -98,7 +98,7 @@ public class ActionsManifest(bool wasNull = false)
         [JsonProperty("requirement", NullValueHandling = NullValueHandling.Ignore)]
         public string Requirement { get; set; } = requirement;
 
-        [JsonIgnore] public IAmethystHost Host { get; set; } = host;
+        [JsonIgnore] public static IAmethystHost Host => SteamVR.HostStatic;
         [JsonIgnore] private ulong Handle { get; set; }
         [JsonIgnore] public bool Data => DataDigital.bState;
         [JsonIgnore] public Vector2 State => new(DataAnalog.x, DataAnalog.y);
@@ -120,7 +120,7 @@ public class ActionsManifest(bool wasNull = false)
 
             try
             {
-                return (await CSharpScript.EvaluateAsync($"var data = {data};{Code.Trim()}",
+                return (await CSharpScript.EvaluateAsync($"object data = {data};{Code.Trim()}",
                     ScriptOptions.Default //.WithImports("Amethyst.Classes")
                         .WithReferences(typeof(IAmethystHost).Assembly)
                         .WithReferences(typeof(SteamVR).Assembly)
@@ -132,11 +132,35 @@ public class ActionsManifest(bool wasNull = false)
             }
         }
 
-        public string GetName(ActionsManifest json, string languageCode)
+        public void SetName(ActionsManifest json, string name)
+        {
+            if (json is null) return;
+            json.Localization ??= new ActionsManifest().Localization;
+
+            var languageRoot = json.Localization
+                .FirstOrDefault(x => x.TryGetValue("language_tag", out var language) &&
+                                     language.Contains(Host?.LanguageCode ?? "en"), null);
+
+            if (languageRoot is null)
+            {
+                json.Localization.Add(
+                    new Dictionary<string, string> { { "language_tag", Host?.LanguageCode ?? "en_US" } });
+
+                languageRoot = json.Localization
+                    .FirstOrDefault(x => x.TryGetValue("language_tag", out var language) &&
+                                         language.Contains(Host?.LanguageCode ?? "en"), null);
+            }
+
+            if (languageRoot is null) return; // Error
+            languageRoot[Name] = name;
+        }
+
+        public string GetName(ActionsManifest json)
         {
             return json?.Localization
                 .FirstOrDefault(x => x.TryGetValue("language_tag", out var language) &&
-                                     language.Contains(languageCode), json?.Localization.FirstOrDefault())
+                                     language.Contains(Host?.LanguageCode ?? "en"),
+                    json.Localization.FirstOrDefault())
                 ?.TryGetValue(Name ?? string.Empty, out var name) ?? false
                 ? name
                 : Name ?? string.Empty;
@@ -151,17 +175,19 @@ public class ActionsManifest(bool wasNull = false)
             return error;
         }
 
-        public bool UpdateState(IAmethystHost host)
+        public bool UpdateState()
         {
-            return Type switch
+            var result = Type switch
             {
-                "boolean" => GetDigitalState(host),
-                "vector2" => GetAnalogState(host),
+                "boolean" => GetDigitalState(),
+                "vector2" => GetAnalogState(),
                 _ => false
             };
+
+            return result || Requirement is "optional";
         }
 
-        private bool GetDigitalState(IAmethystHost host)
+        private bool GetDigitalState()
         {
             if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
 
@@ -174,11 +200,11 @@ public class ActionsManifest(bool wasNull = false)
             DataDigital = pData;
 
             if (error == EVRInputError.None) return DataDigital.bState;
-            host.Log($"GetDigitalActionData call error: {error}", LogSeverity.Error);
+            Host?.Log($"GetDigitalActionData call error: {error}", LogSeverity.Error);
             return false;
         }
 
-        private bool GetAnalogState(IAmethystHost host)
+        private bool GetAnalogState()
         {
             if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
 
@@ -191,18 +217,18 @@ public class ActionsManifest(bool wasNull = false)
             DataAnalog = pData;
 
             if (error == EVRInputError.None) return DataDigital.bState;
-            host.Log($"GetAnalogActionData call error: {error}", LogSeverity.Error);
+            Host?.Log($"GetAnalogActionData call error: {error}", LogSeverity.Error);
             return false;
         }
     }
-
-    public Action this[string path] => Actions.FirstOrDefault(x => x.Name == path);
 }
 
 [method: SetsRequiredMembers]
 public class SteamEvrInput(IAmethystHost host)
 {
-    private IAmethystHost Host { get; set; } = host;
+    // The action sets
+    private VRActiveActionSet_t _mDefaultActionSet;
+    private IAmethystHost Host { get; } = host;
     public ActionsManifest RegisteredActions { get; set; } = new();
 
     public bool TrackerFreezeActionData => RegisteredActions["/actions/default/in/TrackerFreeze"]?.Data ?? false;
@@ -224,66 +250,73 @@ public class SteamEvrInput(IAmethystHost host)
             : OpenVR.k_unTrackedDeviceIndexInvalid
     );
 
-    // The action sets
-    private VRActiveActionSet_t _mDefaultActionSet;
-
     // Note: SteamVR must be initialized beforehand.
     // Preferred type is (vr::VRApplication_Scene)
     public bool InitInputActions()
     {
         if (!SteamVR.Initialized || OpenVR.Input is null || Host is null) return false; // Sanity check
 
-        var manifestPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "actions.json");
-        RegisteredActions = JsonConvert.DeserializeObject<ActionsManifest>(
-            File.ReadAllText(manifestPath)) ?? new ActionsManifest(true);
-
-        if (RegisteredActions.WasNull || !RegisteredActions.IsValid) // Re-generate the action manifest if it's not found
-            File.WriteAllText(manifestPath, JsonConvert.SerializeObject(RegisteredActions, Formatting.Indented));
-
-        if (!File.Exists(manifestPath))
+        try
         {
-            Host.Log("Action manifest was not found in the program " +
-                     $"({GetProgramLocation().Directory}) directory.", LogSeverity.Error);
-            return false; // Return failure status
-        }
+            var manifestPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "actions.json");
+            RegisteredActions = File.Exists(manifestPath)
+                ? JsonConvert.DeserializeObject<ActionsManifest>(
+                    File.ReadAllText(manifestPath)) ?? new ActionsManifest(true)
+                : new ActionsManifest(true);
 
-        // Set the action manifest. This should be in the executable directory.
-        // Defined by m_actionManifestPath.
-        var error = OpenVR.Input.SetActionManifestPath(manifestPath);
-        if (error != EVRInputError.None)
+            if (RegisteredActions.WasNull || !RegisteredActions.IsValid) // Re-generate the action manifest if it's not found
+                File.WriteAllText(manifestPath, JsonConvert.SerializeObject(RegisteredActions, Formatting.Indented));
+
+            if (!File.Exists(manifestPath))
+            {
+                Host.Log("Action manifest was not found in the program " +
+                         $"({GetProgramLocation().Directory}) directory.", LogSeverity.Error);
+                return false; // Return failure status
+            }
+
+            // Set the action manifest. This should be in the executable directory.
+            // Defined by m_actionManifestPath.
+            var error = OpenVR.Input.SetActionManifestPath(manifestPath);
+            if (error != EVRInputError.None)
+            {
+                Host.Log($"Action manifest error: {error}", LogSeverity.Error);
+                return false;
+            }
+
+            /**********************************************/
+            // Here, setup every action with its handler
+            /**********************************************/
+
+            // Get action handles for all actions
+            RegisteredActions.Actions.ForEach(x => x.Register());
+
+            /**********************************************/
+            // Here, setup every action set handle
+            /**********************************************/
+
+            // Get set handle Default Set
+            ulong defaultSetHandler = 0;
+            error = OpenVR.Input.GetActionSetHandle("/actions/default", ref defaultSetHandler);
+            if (error != EVRInputError.None)
+            {
+                Host.Log("ActionSet handle error: {error}", LogSeverity.Error);
+                return false;
+            }
+
+            /**********************************************/
+            // Here, setup action-set handler
+            /**********************************************/
+
+            // Default Set
+            _mDefaultActionSet.ulActionSet = defaultSetHandler;
+            _mDefaultActionSet.ulRestrictedToDevice = OpenVR.k_ulInvalidInputValueHandle;
+            _mDefaultActionSet.nPriority = 0;
+        }
+        catch (Exception e)
         {
-            Host.Log($"Action manifest error: {error}", LogSeverity.Error);
-            return false;
+            Host.Log($"EVR Input Actions init error: {e.Message} at {e.StackTrace}");
+            return true;
         }
-
-        /**********************************************/
-        // Here, setup every action with its handler
-        /**********************************************/
-
-        // Get action handles for all actions
-        RegisteredActions.Actions.ForEach(x => x.Register());
-
-        /**********************************************/
-        // Here, setup every action set handle
-        /**********************************************/
-
-        // Get set handle Default Set
-        ulong defaultSetHandler = 0;
-        error = OpenVR.Input.GetActionSetHandle("/actions/default", ref defaultSetHandler);
-        if (error != EVRInputError.None)
-        {
-            Host.Log("ActionSet handle error: {error}", LogSeverity.Error);
-            return false;
-        }
-
-        /**********************************************/
-        // Here, setup action-set handler
-        /**********************************************/
-
-        // Default Set
-        _mDefaultActionSet.ulActionSet = defaultSetHandler;
-        _mDefaultActionSet.ulRestrictedToDevice = OpenVR.k_ulInvalidInputValueHandle;
-        _mDefaultActionSet.nPriority = 0;
 
         // Return OK
         Host.Log("EVR Input Actions initialized OK");
@@ -322,7 +355,7 @@ public class SteamEvrInput(IAmethystHost host)
         // Here, update the actions and grab data-s
         /**********************************************/
 
-        return RegisteredActions.Actions.All(x => x.UpdateState(Host) || x.Requirement is "optional");
+        return RegisteredActions.Actions.All(x => x.UpdateState());
     }
 
     public static FileInfo GetProgramLocation()

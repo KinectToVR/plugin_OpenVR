@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Resources.Core;
@@ -21,7 +23,7 @@ using Microsoft.UI.Xaml.Media.Animation;
 
 namespace plugin_OpenVR.Pages;
 
-public sealed partial class SettingsPage : UserControl
+public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
 {
     public SettingsPage()
     {
@@ -37,13 +39,135 @@ public sealed partial class SettingsPage : UserControl
             ComponentResourceLocation.Application);
     }
 
+    public bool IsAddingNewAction { get; set; }
+    public bool IsAddingNewActionInverse => !IsAddingNewAction;
+
     public IAmethystHost Host { get; set; }
     public SteamVR DataParent { get; set; }
-    public CustomInputAction TreeSelectedAction { get; set; }
+    public ActionsManifest.Action TreeSelectedAction { get; set; }
+
+    public string SelectedActionName
+    {
+        get => TreeSelectedAction?.GetName(DataParent.VrInput.RegisteredActions) ?? GetString("/InputActions/Title/NoSelection");
+        set
+        {
+            if (!IsAddingNewAction || TreeSelectedAction is null) return;
+            TreeSelectedAction.SetName(DataParent.VrInput.RegisteredActions, value);
+        }
+    }
+
+    public string SelectedActionDescription => TreeSelectedAction?.Name ?? string.Empty;
+    public bool SelectedActionValid => TreeSelectedAction?.Valid ?? false;
+    public bool SelectedActionInvalid => !SelectedActionValid;
+
+    public string SelectedActionCode
+    {
+        get => TreeSelectedAction?.Code ?? string.Empty;
+        set
+        {
+            if (TreeSelectedAction is null) return;
+            TreeSelectedAction.Code = value;
+        }
+    }
 
     private string GetString(string key)
     {
         return Host?.RequestLocalizedString(key) ?? key;
+    }
+
+    private void ActionFailedFlyout_OnOpening(object sender, object e)
+    {
+        Host?.PlayAppSound(SoundType.Show);
+    }
+
+    private void ActionFailedFlyout_OnClosing(FlyoutBase sender, FlyoutBaseClosingEventArgs args)
+    {
+        Host?.PlayAppSound(SoundType.Hide);
+    }
+
+    private void ActionsFlyout_OnOpening(object sender, object e)
+    {
+        Host?.PlayAppSound(SoundType.Show);
+        if (!ActionsTreeView.IsLoaded) return;
+
+        ActionsTreeView.RootNodes.Clear(); // Remove everything first
+        DataParent.VrInput.RegisteredActions.Actions
+            .Select(x => new TreeViewNodeEx(x))
+            .ToList().ForEach(ActionsTreeView.RootNodes.Add);
+    }
+
+    private void ActionsFlyout_OnClosing(FlyoutBase sender, FlyoutBaseClosingEventArgs args)
+    {
+        Host?.PlayAppSound(SoundType.Hide);
+    }
+
+    private async void ActionTestButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (!TestResultsBox.IsLoaded || TreeSelectedAction is null) return;
+        TestResultsBox.Text = await TreeSelectedAction.Invoke(null);
+    }
+
+    private async void ActionsTreeView_OnItemInvoked(TreeView sender, TreeViewItemInvokedEventArgs args)
+    {
+        if (!sender.IsLoaded) return;
+        if (args.InvokedItem is not TreeViewNodeEx node)
+        {
+            await Tree_LaunchTransition(sender);
+            Host?.PlayAppSound(SoundType.Focus);
+            return; // Give up now...
+        }
+
+        sender.SelectedNode = node;
+
+        var shouldAnimate = TreeSelectedAction != node.Action;
+        TreeSelectedAction = node.Action;
+
+        if (!shouldAnimate) return;
+        await Tree_LaunchTransition(sender);
+        Host?.PlayAppSound(SoundType.Invoke);
+    }
+
+    private async Task Tree_LaunchTransition(TreeView tree)
+    {
+        // Hide and save
+        if (((tree.Parent as ScrollViewer)?.Parent as Grid)?.Parent
+            is not Grid innerGrid || innerGrid.Children.Last() is not Grid previewGrid) return;
+
+        // Action stuff reload animation
+        try
+        {
+            // Remove the only one child of our outer main content grid
+            // (What a bestiality it is to do that!!1)
+            innerGrid.Children.Remove(previewGrid);
+            previewGrid.Transitions.Add(
+                new EntranceThemeTransition { IsStaggeringEnabled = false });
+
+            // Sleep peacefully pretending that noting happened
+            await Task.Delay(10);
+
+            // Re-add the child for it to play our funky transition
+            // (Though it's not the same as before...)
+            innerGrid.Children.Add(previewGrid);
+
+            // Remove the transition
+            await Task.Delay(100);
+            previewGrid.Transitions.Clear();
+        }
+        catch (Exception e)
+        {
+            Host?.Log(e);
+        }
+    }
+
+    private void NewActionItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (!ActionsTreeView.IsLoaded) return;
+
+        ActionsTreeView.SelectionMode = TreeViewSelectionMode.None;
+        ActionsTreeView.SelectionMode = TreeViewSelectionMode.Single;
+
+        IsAddingNewAction = true;
+        OnPropertyChanged();
     }
 
     private void ReManifestButton_OnClick(object sender, RoutedEventArgs e)
@@ -527,88 +651,19 @@ public sealed partial class SettingsPage : UserControl
             Host?.RequestLocalizedString("/CrashHandler/ReRegister/Finished"), "", "");
     }
 
-    private void ActionFailedFlyout_OnOpening(object sender, object e)
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    private void OnPropertyChanged(string propertyName = null)
     {
-        Host?.PlayAppSound(SoundType.Show);
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    private void ActionFailedFlyout_OnClosing(FlyoutBase sender, FlyoutBaseClosingEventArgs args)
+    private void AddNewAction_OnClick(object sender, RoutedEventArgs e)
     {
-        Host?.PlayAppSound(SoundType.Hide);
-    }
+        if ((sender as Button)?.IsLoaded ?? true) return;
 
-    private void ActionsFlyout_OnOpening(object sender, object e)
-    {
-        Host?.PlayAppSound(SoundType.Show);
-        if (!ActionsTreeView.IsLoaded) return;
-
-        ActionsTreeView.RootNodes.Clear(); // Remove everything first
-        DataParent.CustomInputActions
-            .Select(x => new TreeViewNodeEx(x))
-            .ToList().ForEach(ActionsTreeView.RootNodes.Add);
-    }
-
-    private void ActionsFlyout_OnClosing(FlyoutBase sender, FlyoutBaseClosingEventArgs args)
-    {
-        Host?.PlayAppSound(SoundType.Hide);
-    }
-
-    private async void ActionTestButton_OnClick(object sender, RoutedEventArgs e)
-    {
-        if (!TestResultsBox.IsLoaded || TreeSelectedAction is null) return;
-        TestResultsBox.Text = await TreeSelectedAction.Invoke(null);
-    }
-
-    private async void ActionsTreeView_OnItemInvoked(TreeView sender, TreeViewItemInvokedEventArgs args)
-    {
-        if (!sender.IsLoaded) return;
-        if (args.InvokedItem is not TreeViewNodeEx node)
-        {
-            await Tree_LaunchTransition(sender);
-            Host?.PlayAppSound(SoundType.Focus);
-            return; // Give up now...
-        }
-
-        sender.SelectedNode = node;
-
-        var shouldAnimate = TreeSelectedAction != node.Action;
-        TreeSelectedAction = node.Action;
-
-        if (!shouldAnimate) return;
-        await Tree_LaunchTransition(sender);
-        Host?.PlayAppSound(SoundType.Invoke);
-    }
-
-    private async Task Tree_LaunchTransition(TreeView tree)
-    {
-        // Hide and save
-        if (((tree.Parent as ScrollViewer)?.Parent as Grid)?.Parent
-            is not Grid innerGrid || innerGrid.Children.Last() is not Grid previewGrid) return;
-
-        // Action stuff reload animation
-        try
-        {
-            // Remove the only one child of our outer main content grid
-            // (What a bestiality it is to do that!!1)
-            innerGrid.Children.Remove(previewGrid);
-            previewGrid.Transitions.Add(
-                new EntranceThemeTransition { IsStaggeringEnabled = false });
-
-            // Sleep peacefully pretending that noting happened
-            await Task.Delay(10);
-
-            // Re-add the child for it to play our funky transition
-            // (Though it's not the same as before...)
-            innerGrid.Children.Add(previewGrid);
-
-            // Remove the transition
-            await Task.Delay(100);
-            previewGrid.Transitions.Clear();
-        }
-        catch (Exception e)
-        {
-            Host?.Log(e);
-        }
+        IsAddingNewAction = false;
+        OnPropertyChanged();
     }
 }
 
