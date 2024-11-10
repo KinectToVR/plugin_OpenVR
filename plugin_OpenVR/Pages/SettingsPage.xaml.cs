@@ -39,26 +39,35 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
             ComponentResourceLocation.Application);
     }
 
+    private bool _listViewChangeBlock = false;
     public bool IsAddingNewAction { get; set; }
     public bool IsAddingNewActionInverse => !IsAddingNewAction;
 
     public IAmethystHost Host { get; set; }
     public SteamVR DataParent { get; set; }
-    public ActionsManifest.Action TreeSelectedAction { get; set; }
+    public InputAction TreeSelectedAction { get; set; }
 
     public string SelectedActionName
     {
-        get => TreeSelectedAction?.GetName(DataParent.VrInput.RegisteredActions) ?? GetString("/InputActions/Title/NoSelection");
+        get => IsAddingNewAction && TreeSelectedAction is not null
+            ? NewActionName
+            : TreeSelectedAction?.NameLocalized ?? GetString("/InputActions/Title/NoSelection");
         set
         {
             if (!IsAddingNewAction || TreeSelectedAction is null) return;
-            TreeSelectedAction.SetName(DataParent.VrInput.RegisteredActions, value);
+            NewActionName = value;
+            OnPropertyChanged();
         }
     }
 
     public string SelectedActionDescription => TreeSelectedAction?.Name ?? string.Empty;
     public bool SelectedActionValid => TreeSelectedAction?.Valid ?? false;
     public bool SelectedActionInvalid => !SelectedActionValid;
+    public bool ActionValid => TreeSelectedAction is not null && (!IsAddingNewAction || !string.IsNullOrEmpty(SelectedActionName));
+    public string NewActionName { get; set; }
+
+    public IEnumerable<InputAction> CustomActions =>
+        DataParent.VrInput.RegisteredActions.Actions.Where(x => x.Custom);
 
     public string SelectedActionCode
     {
@@ -88,12 +97,26 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
     private void ActionsFlyout_OnOpening(object sender, object e)
     {
         Host?.PlayAppSound(SoundType.Show);
-        if (!ActionsTreeView.IsLoaded) return;
+        ReloadActions();
+    }
 
-        ActionsTreeView.RootNodes.Clear(); // Remove everything first
-        DataParent.VrInput.RegisteredActions.Actions
-            .Select(x => new TreeViewNodeEx(x))
-            .ToList().ForEach(ActionsTreeView.RootNodes.Add);
+    private void ReloadActions()
+    {
+        TreeSelectedAction = null;
+        IsAddingNewAction = !CustomActions.Any();
+        if (IsAddingNewAction)
+        {
+            TreeSelectedAction = new InputAction(
+                $"/actions/default/in/{Guid.NewGuid().ToString().ToUpper()}",
+                "boolean", "optional");
+
+            NewActionName = string.Empty;
+        }
+
+        ActionsListView.SelectionMode = ListViewSelectionMode.None;
+        ActionsListView.SelectionMode = ListViewSelectionMode.Single;
+
+        OnPropertyChanged();
     }
 
     private void ActionsFlyout_OnClosing(FlyoutBase sender, FlyoutBaseClosingEventArgs args)
@@ -101,45 +124,34 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         Host?.PlayAppSound(SoundType.Hide);
     }
 
-    private async void ActionTestButton_OnClick(object sender, RoutedEventArgs e)
+    private async void ActionTestButton_OnClick(SplitButton sender, SplitButtonClickEventArgs e)
     {
         if (!TestResultsBox.IsLoaded || TreeSelectedAction is null) return;
         TestResultsBox.Text = await TreeSelectedAction.Invoke(null);
     }
 
-    private async void ActionsTreeView_OnItemInvoked(TreeView sender, TreeViewItemInvokedEventArgs args)
+    private async void RemoveAction_OnClick(object sender, RoutedEventArgs e)
     {
-        if (!sender.IsLoaded) return;
-        if (args.InvokedItem is not TreeViewNodeEx node)
-        {
-            await Tree_LaunchTransition(sender);
-            Host?.PlayAppSound(SoundType.Focus);
-            return; // Give up now...
-        }
+        if (!TestResultsBox.IsLoaded || TreeSelectedAction is null) return;
+        DataParent.VrInput.RegisteredActions.Actions.Remove(TreeSelectedAction);
+        DataParent.VrInput.SaveSettings();
 
-        sender.SelectedNode = node;
+        TreeSelectedAction = null;
+        ActionRemoveFlyout.Hide();
 
-        var shouldAnimate = TreeSelectedAction != node.Action;
-        TreeSelectedAction = node.Action;
-
-        if (!shouldAnimate) return;
-        await Tree_LaunchTransition(sender);
-        Host?.PlayAppSound(SoundType.Invoke);
+        OnPropertyChanged();
+        await Tree_LaunchTransition();
     }
 
-    private async Task Tree_LaunchTransition(TreeView tree)
+    private async Task Tree_LaunchTransition()
     {
-        // Hide and save
-        if (((tree.Parent as ScrollViewer)?.Parent as Grid)?.Parent
-            is not Grid innerGrid || innerGrid.Children.Last() is not Grid previewGrid) return;
-
         // Action stuff reload animation
         try
         {
             // Remove the only one child of our outer main content grid
             // (What a bestiality it is to do that!!1)
-            innerGrid.Children.Remove(previewGrid);
-            previewGrid.Transitions.Add(
+            OuterGrid.Children.Remove(PreviewGrid);
+            PreviewGrid.Transitions.Add(
                 new EntranceThemeTransition { IsStaggeringEnabled = false });
 
             // Sleep peacefully pretending that noting happened
@@ -147,11 +159,11 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
 
             // Re-add the child for it to play our funky transition
             // (Though it's not the same as before...)
-            innerGrid.Children.Add(previewGrid);
+            OuterGrid.Children.Add(PreviewGrid);
 
             // Remove the transition
             await Task.Delay(100);
-            previewGrid.Transitions.Clear();
+            PreviewGrid.Transitions.Clear();
         }
         catch (Exception e)
         {
@@ -159,15 +171,43 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         }
     }
 
-    private void NewActionItem_OnClick(object sender, RoutedEventArgs e)
+    private async void ActionsListView_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!ActionsTreeView.IsLoaded) return;
+        if (sender is not ListView view || _listViewChangeBlock) return;
+        if (e.AddedItems.FirstOrDefault() is not InputAction action)
+        {
+            await Tree_LaunchTransition();
+            Host?.PlayAppSound(SoundType.Focus);
+            return; // Give up now...
+        }
 
-        ActionsTreeView.SelectionMode = TreeViewSelectionMode.None;
-        ActionsTreeView.SelectionMode = TreeViewSelectionMode.Single;
-
-        IsAddingNewAction = true;
+        var shouldAnimate = TreeSelectedAction != action;
+        TreeSelectedAction = action;
+        IsAddingNewAction = false;
         OnPropertyChanged();
+
+        if (!shouldAnimate) return;
+        await Tree_LaunchTransition();
+        Host?.PlayAppSound(SoundType.Invoke);
+    }
+
+    private async void NewActionItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (!ActionsListView.IsLoaded) return;
+
+        ActionsListView.SelectionMode = ListViewSelectionMode.None;
+        ActionsListView.SelectionMode = ListViewSelectionMode.Single;
+
+        TreeSelectedAction = new InputAction(
+            $"/actions/default/in/{Guid.NewGuid().ToString().ToUpper()}",
+            "boolean", "optional");
+
+        NewActionName = string.Empty;
+        IsAddingNewAction = true;
+
+        Host?.PlayAppSound(SoundType.Invoke);
+        OnPropertyChanged();
+        await Tree_LaunchTransition();
     }
 
     private void ReManifestButton_OnClick(object sender, RoutedEventArgs e)
@@ -655,27 +695,34 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
 
     private void OnPropertyChanged(string propertyName = null)
     {
+        _listViewChangeBlock = true;
+        var itemBackup = ActionsListView.SelectedItem;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+        if (ActionsListView.Items.Contains(itemBackup))
+            ActionsListView.SelectedItem = itemBackup;
+        _listViewChangeBlock = false;
     }
 
-    private void AddNewAction_OnClick(object sender, RoutedEventArgs e)
+    private async void AddNewAction_OnClick(object sender, RoutedEventArgs e)
     {
-        if ((sender as Button)?.IsLoaded ?? true) return;
+        if (!((sender as Button)?.IsLoaded ?? false)) return;
+
+        DataParent.VrInput.RegisteredActions.Actions.Add(TreeSelectedAction);
+        TreeSelectedAction.NameLocalized = NewActionName;
+        DataParent.VrInput.SaveSettings();
+        DataParent.VrInput.InitInputActions();
 
         IsAddingNewAction = false;
-        OnPropertyChanged();
-    }
-}
+        Host?.PlayAppSound(SoundType.Invoke);
 
-internal class TreeViewNodeEx : TreeViewNode
-{
-    public ActionsManifest.Action Action { get; set; }
+        ActionsListView.ItemContainerTransitions.Clear();
+        ReloadActions();
+        ActionsListView.ItemContainerTransitions = [];
 
-    public bool HasData => Action?.Valid ?? false;
+        if (ActionsListView.Items.Any())
+            ActionsListView.SelectedItem = ActionsListView.Items.Last();
 
-    public TreeViewNodeEx(ActionsManifest.Action action)
-    {
-        Content = action.Name;
-        Action = action;
+        await Tree_LaunchTransition();
     }
 }

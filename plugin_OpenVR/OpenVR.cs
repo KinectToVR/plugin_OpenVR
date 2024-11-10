@@ -41,6 +41,7 @@ public class SteamVR : IServiceEndpoint
     private ulong _vrOverlayHandle = OpenVR.k_ulOverlayHandleInvalid;
 
     public SteamEvrInput VrInput { get; set; }
+    public static SteamEvrInput VrInputStatic { get; set; }
     public static bool Initialized { get; private set; }
     private static object InitLock { get; } = new();
 
@@ -216,13 +217,15 @@ public class SteamVR : IServiceEndpoint
     public void OnLoad()
     {
         VrInput ??= new SteamEvrInput(Host);
+        VrInputStatic = VrInput;
+        HostStatic = Host;
+
         Settings ??= new SettingsPage { DataParent = this, Host = Host };
         InterfaceRoot = new Page
         {
             Content = Settings
         };
 
-        HostStatic = Host;
         PluginLoaded = true;
     }
 

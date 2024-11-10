@@ -44,7 +44,7 @@ public class ActionsManifest(bool wasNull = false)
     ];
 
     [JsonProperty("actions")]
-    public List<Action> Actions { get; set; } =
+    public List<InputAction> Actions { get; set; } =
     [
         new("/actions/default/in/TrackerFreeze", "boolean", "optional"),
         new("/actions/default/in/FlipToggle", "boolean", "optional"),
@@ -82,61 +82,83 @@ public class ActionsManifest(bool wasNull = false)
         }
     ];
 
-    public Action this[string path] => Actions.FirstOrDefault(x => x.Name == path);
+    public InputAction this[string path] => Actions.FirstOrDefault(x => x.Name == path);
 
     public class DefaultBindings(string controllerType = "", string path = "")
     {
         [JsonProperty("controller_type")] public string ControllerType { get; set; } = controllerType;
         [JsonProperty("binding_url")] public string Binding { get; set; } = path;
     }
+}
 
-    public class Action(string name = "", string type = "boolean", string requirement = null)
+public class InputAction(string name = "", string type = "boolean", string requirement = null)
+{
+    [JsonProperty("name")] public string Name { get; set; } = name;
+    [JsonProperty("type")] public string Type { get; set; } = type;
+
+    [JsonProperty("requirement", NullValueHandling = NullValueHandling.Ignore)]
+    public string Requirement { get; set; } = requirement;
+
+    [JsonIgnore] public static IAmethystHost Host => SteamVR.HostStatic;
+    [JsonIgnore] private ulong Handle { get; set; }
+    [JsonIgnore] public bool Data => DataDigital.bState;
+    [JsonIgnore] public Vector2 State => new(DataAnalog.x, DataAnalog.y);
+    [JsonIgnore] private InputDigitalActionData_t DataDigital { get; set; }
+    [JsonIgnore] private InputAnalogActionData_t DataAnalog { get; set; }
+    [JsonIgnore] public bool Valid => Host is not null && !string.IsNullOrEmpty(Name) && !string.IsNullOrEmpty(Type);
+    [JsonIgnore] public bool Custom => new ActionsManifest().Actions.All(x => x.Name != Name);
+
+    [JsonIgnore]
+    public string Code
     {
-        [JsonProperty("name")] public string Name { get; set; } = name;
-        [JsonProperty("type")] public string Type { get; set; } = type;
+        get => Host?.PluginSettings.GetSetting(Name, string.Empty);
+        set => Host?.PluginSettings.SetSetting(Name, value);
+    }
 
-        [JsonProperty("requirement", NullValueHandling = NullValueHandling.Ignore)]
-        public string Requirement { get; set; } = requirement;
+    public async Task<string> Invoke(object data)
+    {
+        // Exit with a custom message to be shown by the crash handler
+        Host?.Log($"Trying to evaluate expression \"{Code}\" for data \"{data}\"...");
 
-        [JsonIgnore] public static IAmethystHost Host => SteamVR.HostStatic;
-        [JsonIgnore] private ulong Handle { get; set; }
-        [JsonIgnore] public bool Data => DataDigital.bState;
-        [JsonIgnore] public Vector2 State => new(DataAnalog.x, DataAnalog.y);
-        [JsonIgnore] private InputDigitalActionData_t DataDigital { get; set; }
-        [JsonIgnore] private InputAnalogActionData_t DataAnalog { get; set; }
-        [JsonIgnore] public bool Valid => Host is not null && !string.IsNullOrEmpty(Name) && !string.IsNullOrEmpty(Type);
-
-        [JsonIgnore]
-        public string Code
+        try
         {
-            get => Host?.PluginSettings.GetSetting(Handle, string.Empty);
-            set => Host?.PluginSettings.SetSetting(Handle, value);
-        }
-
-        public async Task<string> Invoke(object data)
-        {
-            // Exit with a custom message to be shown by the crash handler
-            Host?.Log($"Trying to evaluate expression \"{Code}\" for data \"{data}\"...");
-
-            try
-            {
-                return (await CSharpScript.EvaluateAsync($"object data = {data};{Code.Trim()}",
-                    ScriptOptions.Default //.WithImports("Amethyst.Classes")
+            return Host is not null && Code.StartsWith("hosted")
+                ? ((dynamic)Host).Eval($"{(data is not null ? $"object data = {data};" : "")}" +
+                                       $"{Code.Replace("hosted", string.Empty).Trim()}")
+                : (await CSharpScript.EvaluateAsync(
+                    $"{(data is not null ? $"object data = {data};" : "")}" +
+                    $"{Code.Trim()}", ScriptOptions.Default.WithImports("plugin_OpenVR")
                         .WithReferences(typeof(IAmethystHost).Assembly)
                         .WithReferences(typeof(SteamVR).Assembly)
                         .AddImports("System.Linq"))).ToString();
-            }
-            catch (Exception ex)
-            {
-                return $"Evaluation error: '{ex}'";
-            }
         }
-
-        public void SetName(ActionsManifest json, string name)
+        catch (Exception ex)
         {
-            if (json is null) return;
-            json.Localization ??= new ActionsManifest().Localization;
+            return ex.Message;
+        }
+    }
 
+    public string NameLocalized
+    {
+        get
+        {
+            var json = SteamVR.VrInputStatic?.RegisteredActions;
+            if (json is null) return null;
+
+            return json.Localization
+                .FirstOrDefault(x => x.TryGetValue("language_tag", out var language) &&
+                                     language.Contains(Host?.LanguageCode ?? "en"),
+                    json.Localization.FirstOrDefault())
+                ?.TryGetValue(Name ?? string.Empty, out var name) ?? false
+                ? name
+                : Name ?? string.Empty;
+        }
+        set
+        {
+            var json = SteamVR.VrInputStatic?.RegisteredActions;
+            if (json is null) return;
+
+            json.Localization ??= new ActionsManifest().Localization;
             var languageRoot = json.Localization
                 .FirstOrDefault(x => x.TryGetValue("language_tag", out var language) &&
                                      language.Contains(Host?.LanguageCode ?? "en"), null);
@@ -152,74 +174,63 @@ public class ActionsManifest(bool wasNull = false)
             }
 
             if (languageRoot is null) return; // Error
-            languageRoot[Name] = name;
+            languageRoot[Name] = value;
         }
+    }
 
-        public string GetName(ActionsManifest json)
+    public EVRInputError Register()
+    {
+        var pHandle = Handle;
+        var error = OpenVR.Input.GetActionHandle(Name, ref pHandle);
+
+        Handle = pHandle;
+        return error;
+    }
+
+    public bool UpdateState()
+    {
+        var result = Type switch
         {
-            return json?.Localization
-                .FirstOrDefault(x => x.TryGetValue("language_tag", out var language) &&
-                                     language.Contains(Host?.LanguageCode ?? "en"),
-                    json.Localization.FirstOrDefault())
-                ?.TryGetValue(Name ?? string.Empty, out var name) ?? false
-                ? name
-                : Name ?? string.Empty;
-        }
+            "boolean" => GetDigitalState(),
+            "vector2" => GetAnalogState(),
+            _ => false
+        };
 
-        public EVRInputError Register()
-        {
-            var pHandle = Handle;
-            var error = OpenVR.Input.GetActionHandle(Name, ref pHandle);
+        return result || Requirement is "optional";
+    }
 
-            Handle = pHandle;
-            return error;
-        }
+    private bool GetDigitalState()
+    {
+        if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
 
-        public bool UpdateState()
-        {
-            var result = Type switch
-            {
-                "boolean" => GetDigitalState(),
-                "vector2" => GetAnalogState(),
-                _ => false
-            };
+        var pData = DataDigital;
+        var error = OpenVR.Input.GetDigitalActionData(
+            Handle, ref pData,
+            (uint)Marshal.SizeOf<InputAnalogActionData_t>(),
+            OpenVR.k_ulInvalidInputValueHandle);
 
-            return result || Requirement is "optional";
-        }
+        DataDigital = pData;
 
-        private bool GetDigitalState()
-        {
-            if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
+        if (error == EVRInputError.None) return DataDigital.bState;
+        Host?.Log($"GetDigitalActionData call error: {error}", LogSeverity.Error);
+        return false;
+    }
 
-            var pData = DataDigital;
-            var error = OpenVR.Input.GetDigitalActionData(
-                Handle, ref pData,
-                (uint)Marshal.SizeOf<InputAnalogActionData_t>(),
-                OpenVR.k_ulInvalidInputValueHandle);
+    private bool GetAnalogState()
+    {
+        if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
 
-            DataDigital = pData;
+        var pData = DataAnalog;
+        var error = OpenVR.Input.GetAnalogActionData(
+            Handle, ref pData,
+            (uint)Marshal.SizeOf<InputAnalogActionData_t>(),
+            OpenVR.k_ulInvalidInputValueHandle);
 
-            if (error == EVRInputError.None) return DataDigital.bState;
-            Host?.Log($"GetDigitalActionData call error: {error}", LogSeverity.Error);
-            return false;
-        }
+        DataAnalog = pData;
 
-        private bool GetAnalogState()
-        {
-            if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
-
-            var pData = DataAnalog;
-            var error = OpenVR.Input.GetAnalogActionData(
-                Handle, ref pData,
-                (uint)Marshal.SizeOf<InputAnalogActionData_t>(),
-                OpenVR.k_ulInvalidInputValueHandle);
-
-            DataAnalog = pData;
-
-            if (error == EVRInputError.None) return DataDigital.bState;
-            Host?.Log($"GetAnalogActionData call error: {error}", LogSeverity.Error);
-            return false;
-        }
+        if (error == EVRInputError.None) return DataDigital.bState;
+        Host?.Log($"GetAnalogActionData call error: {error}", LogSeverity.Error);
+        return false;
     }
 }
 
@@ -250,6 +261,26 @@ public class SteamEvrInput(IAmethystHost host)
             : OpenVR.k_unTrackedDeviceIndexInvalid
     );
 
+    public void SaveSettings()
+    {
+        var manifestPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "actions.json");
+        File.WriteAllText(manifestPath, JsonConvert.SerializeObject(RegisteredActions, Formatting.Indented));
+    }
+
+    public string ReadSettings()
+    {
+        var manifestPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "actions.json");
+        RegisteredActions = File.Exists(manifestPath)
+            ? JsonConvert.DeserializeObject<ActionsManifest>(
+                File.ReadAllText(manifestPath)) ?? new ActionsManifest(true)
+            : new ActionsManifest(true);
+
+        if (RegisteredActions.WasNull || !RegisteredActions.IsValid) // Re-generate the action manifest if it's not found
+            File.WriteAllText(manifestPath, JsonConvert.SerializeObject(RegisteredActions, Formatting.Indented));
+
+        return manifestPath;
+    }
+
     // Note: SteamVR must be initialized beforehand.
     // Preferred type is (vr::VRApplication_Scene)
     public bool InitInputActions()
@@ -258,15 +289,7 @@ public class SteamEvrInput(IAmethystHost host)
 
         try
         {
-            var manifestPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "actions.json");
-            RegisteredActions = File.Exists(manifestPath)
-                ? JsonConvert.DeserializeObject<ActionsManifest>(
-                    File.ReadAllText(manifestPath)) ?? new ActionsManifest(true)
-                : new ActionsManifest(true);
-
-            if (RegisteredActions.WasNull || !RegisteredActions.IsValid) // Re-generate the action manifest if it's not found
-                File.WriteAllText(manifestPath, JsonConvert.SerializeObject(RegisteredActions, Formatting.Indented));
-
+            var manifestPath = ReadSettings();
             if (!File.Exists(manifestPath))
             {
                 Host.Log("Action manifest was not found in the program " +

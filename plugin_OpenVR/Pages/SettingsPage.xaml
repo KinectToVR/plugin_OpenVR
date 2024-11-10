@@ -2,12 +2,13 @@
 
 <UserControl x:Class="plugin_OpenVR.Pages.SettingsPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pluginOpenVr="using:plugin_OpenVR">
 
 	<Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-		<Button Grid.Column="0" x:Name="CustomActionsButton" Height="40"
+		<Button Grid.Column="0" Height="40" FontWeight="SemiBold" FontSize="16" 
 		        Content="{x:Bind GetString('/InputActions/Buttons/View'), Mode=OneWay}"
-		        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+		        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
 			<Button.Flyout>
 				<Flyout Placement="Full"
 				        Opening="ActionsFlyout_OnOpening"
@@ -27,13 +28,12 @@
 
 					<!--Outer grid-->
 					<Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
-					      MaxWidth="790" MinWidth="790" MaxHeight="475" MinHeight="475"
-					      DataContext="{x:Bind}">
+					      MaxWidth="790" MinWidth="790" MaxHeight="475" MinHeight="475">
 
 						<!--Inner grid-->
 						<Grid VerticalAlignment="Stretch" MaxWidth="790" MinWidth="790"
 						      MaxHeight="475" MinHeight="475" Padding="0,6"
-						      ColumnDefinitions="170,40,*" DataContext="{x:Bind}">
+						      ColumnDefinitions="170,40,*" x:Name="OuterGrid">
 							<Grid.Transitions>
 								<TransitionCollection>
 									<EntranceThemeTransition />
@@ -47,8 +47,18 @@
 								<ScrollViewer HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
 								              VerticalScrollBarVisibility="Visible" Grid.Row="0"
 								              Padding="20,0, 13, 0" Margin="-20,0, -15, 0">
-									<TreeView x:Name="ActionsTreeView" CanDragItems="False" CanReorderItems="False"
-									          ItemInvoked="ActionsTreeView_OnItemInvoked" />
+									<ListView x:Name="ActionsListView" CanDragItems="False" CanReorderItems="False"
+											  SelectionChanged="ActionsListView_OnSelectionChanged"
+									          ItemsSource="{x:Bind CustomActions, Mode=OneWay}">
+										<ListView.ItemTemplate>
+											<DataTemplate x:DataType="pluginOpenVr:InputAction">
+												<TextBlock Text="{x:Bind NameLocalized}" />
+											</DataTemplate>
+										</ListView.ItemTemplate>
+										<ListView.ItemContainerTransitions>
+											<TransitionCollection/>
+										</ListView.ItemContainerTransitions>
+									</ListView>
 								</ScrollViewer>
 
 								<StackPanel Orientation="Vertical" Grid.Row="1">
@@ -58,32 +68,41 @@
 							</Grid>
 
 							<!--The preview part-->
-							<Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
+							<Grid Grid.Column="2" RowDefinitions="Auto,Auto,*" 
+							      Margin="-8,0,0,-2" x:Name="PreviewGrid">
 								<TextBlock FontWeight="SemiBold" Text="{x:Bind SelectedActionName, Mode=OneWay}"
 								           Visibility="{x:Bind IsAddingNewActionInverse, Mode=OneWay}"
-								           VerticalAlignment="Top" HorizontalAlignment="Left"
-								           FontSize="26" Margin="0,-7,0,0" />
+								           VerticalAlignment="Top" HorizontalAlignment="Left" MaxWidth="370"
+								           FontSize="26" Margin="0,-7,0,0" TextTrimming="CharacterEllipsis" />
 
 								<TextBox FontWeight="SemiBold" Text="{x:Bind SelectedActionName, Mode=TwoWay}"
 								         Visibility="{x:Bind IsAddingNewAction, Mode=OneWay}"
+										 PlaceholderText="{x:Bind GetString('/SettingsPage/Placeholders/NewAction'), Mode=OneWay}"
 								         VerticalAlignment="Top" HorizontalAlignment="Left"
-								         FontSize="26" Margin="0,-7,0,0" />
+								         FontSize="20" Margin="0,-5,0,5" Background="Transparent"
+								         MaxWidth="370" MinWidth="370" AcceptsReturn="False" TextWrapping="NoWrap" />
 
-								<Button Style="{ThemeResource AccentButtonStyle}"
-								        Click="ActionTestButton_OnClick"
+								<SplitButton Click="ActionTestButton_OnClick" IsEnabled="{x:Bind ActionValid, Mode=OneWay}"
 										Visibility="{x:Bind IsAddingNewActionInverse, Mode=OneWay}"
 								        Content="{x:Bind GetString('/InputActions/Buttons/Test'), Mode=OneWay}"
 								        HorizontalAlignment="Right" VerticalAlignment="Top"
-								        Grid.Row="0" Margin="0,-2,0,0" />
+								        Grid.Row="0" Margin="0,-2,0,0">
+									<SplitButton.Flyout>
+										<Flyout Placement="Bottom" x:Name="ActionRemoveFlyout">
+											<Button Click="RemoveAction_OnClick" IsEnabled="{x:Bind ActionValid, Mode=OneWay}"
+											        Content="{x:Bind GetString('/InputActions/Buttons/Remove'), Mode=OneWay}" />
+										</Flyout>
+									</SplitButton.Flyout>
+								</SplitButton>
 
 								<Button Style="{ThemeResource AccentButtonStyle}"
-								        Click="AddNewAction_OnClick"
+								        Click="AddNewAction_OnClick" IsEnabled="{x:Bind ActionValid, Mode=OneWay}"
 										Visibility="{x:Bind IsAddingNewAction, Mode=OneWay}"
 								        Content="{x:Bind GetString('/InputActions/Buttons/Add'), Mode=OneWay}"
 								        HorizontalAlignment="Right" VerticalAlignment="Top"
 								        Grid.Row="0" Margin="0,-2,0,0" />
 
-								<!--"Select to preview" grid-->
+									<!--"Select to preview" grid-->
 								<Grid Grid.Row="2" Opacity="0.75" Visibility="{x:Bind SelectedActionInvalid, Mode=OneWay}">
 									<Grid.ColumnDefinitions>
 										<ColumnDefinition Width="*" />
@@ -105,14 +124,15 @@
 								</Grid>
 
 								<!--Actual preview data-->
-								<Grid Grid.Row="2" RowDefinitions="Auto, *, Auto"
+								<Grid Grid.Row="2" RowDefinitions="Auto, *, Auto" RowSpacing="12"
 								      Visibility="{x:Bind SelectedActionValid, Mode=OneWay}">
 
 									<TextBlock HorizontalAlignment="Left" TextWrapping="WrapWholeWords"
-									           FontSize="14" Grid.Row="0" HorizontalTextAlignment="Left"
+									           FontSize="14" Grid.Row="0" HorizontalTextAlignment="Left" Margin="2,0,0,0"
 									           Text="{x:Bind SelectedActionDescription, Mode=OneWay}" Opacity="0.75" />
 
-									<TextBox Grid.Row="2" Text="{x:Bind SelectedActionCode, Mode=TwoWay}"
+									<TextBox Grid.Row="1" Text="{x:Bind SelectedActionCode, Mode=TwoWay}" IsSpellCheckEnabled="False"
+											 VerticalAlignment="Stretch" AcceptsReturn="True" TextWrapping="Wrap"
 									         PlaceholderText="{x:Bind GetString('/InputActions/Code/Input'), Mode=OneWay}" />
 
 									<TextBox Grid.Row="2" x:Name="TestResultsBox" IsReadOnly="True"
