@@ -13,6 +13,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using Newtonsoft.Json;
 using plugin_OpenVR.Utils;
 using Valve.VR;
+using Windows.Storage;
 
 namespace plugin_OpenVR;
 
@@ -263,22 +264,42 @@ public class SteamEvrInput(IAmethystHost host)
 
     public void SaveSettings()
     {
-        var manifestPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "actions.json");
-        File.WriteAllText(manifestPath, JsonConvert.SerializeObject(RegisteredActions, Formatting.Indented));
+        try
+        {
+            var manifestPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "action_manifest.json");
+            File.WriteAllText(manifestPath, JsonConvert.SerializeObject(RegisteredActions, Formatting.Indented));
+
+            Directory.CreateDirectory(Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "input_profiles"));
+            new DirectoryInfo(Path.Join(Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.FullName, "input_profiles"))
+                .CopyToFolder(Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "input_profiles"));
+        }
+        catch (Exception e)
+        {
+            Host?.Log(e);
+        }
     }
 
     public string ReadSettings()
     {
-        var manifestPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "actions.json");
-        RegisteredActions = File.Exists(manifestPath)
-            ? JsonConvert.DeserializeObject<ActionsManifest>(
-                File.ReadAllText(manifestPath)) ?? new ActionsManifest(true)
-            : new ActionsManifest(true);
+        try
+        {
+            var manifestPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "action_manifest.json");
+            RegisteredActions = File.Exists(manifestPath)
+                ? JsonConvert.DeserializeObject<ActionsManifest>(
+                    File.ReadAllText(manifestPath)) ?? new ActionsManifest(true)
+                : new ActionsManifest(true);
 
-        if (RegisteredActions.WasNull || !RegisteredActions.IsValid) // Re-generate the action manifest if it's not found
-            File.WriteAllText(manifestPath, JsonConvert.SerializeObject(RegisteredActions, Formatting.Indented));
+            if (RegisteredActions.WasNull || !RegisteredActions.IsValid)
+                SaveSettings(); // Re-generate the action manifest if it's not found
 
-        return manifestPath;
+            return manifestPath;
+        }
+        catch (Exception e)
+        {
+            Host?.Log(e);
+        }
+
+        return Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "action_manifest.json");
     }
 
     // Note: SteamVR must be initialized beforehand.

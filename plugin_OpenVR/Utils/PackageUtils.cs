@@ -39,7 +39,7 @@ public static class StorageExtensions
 {
     public static void CopyToFolder(this DirectoryInfo source, string destination, bool log = false)
     {
-        // Now Create all of the directories
+        // Now Create all directories
         foreach (var dirPath in source.GetDirectories("*", SearchOption.AllDirectories))
             Directory.CreateDirectory(dirPath.FullName.Replace(source.FullName, destination));
 
