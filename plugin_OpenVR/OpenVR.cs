@@ -1,6 +1,3 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License. See LICENSE in the project root for license information.
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,16 +10,16 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Amethyst.Plugins.Contract;
-using com.driver_Amethyst;
 using Microsoft.UI.Xaml.Controls;
 using plugin_OpenVR.Pages;
 using plugin_OpenVR.Utils;
 using Valve.VR;
 using Vanara.PInvoke;
+using driver_Amethyst = com.driver_Amethyst;
+using driver_00Amethyst = com.driver_00Amethyst;
+using Windows.Storage;
 
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
 
 namespace plugin_OpenVR;
 
@@ -36,9 +33,29 @@ namespace plugin_OpenVR;
 [ExportMetadata("CoreSetupData", typeof(SetupData))]
 public class SteamVR : IServiceEndpoint
 {
-    private IDriverService _driverService;
+    private driver_00Amethyst.IDriverService _00driverService;
+    private driver_Amethyst.IDriverService _driverService;
+
+    private InputActions _controllerInputActions = new()
+    {
+        CalibrationConfirmed = (_, _) => { },
+        CalibrationModeChanged = (_, _) => { },
+        SkeletonFlipToggled = (_, _) => { },
+        TrackingFreezeToggled = (_, _) => { }
+    };
+
     private uint _vrNotificationId;
     private ulong _vrOverlayHandle = OpenVR.k_ulOverlayHandleInvalid;
+    private bool _isEmulationEnabledLast;
+
+    public SteamVR()
+    {
+        Instance = this;
+    }
+
+    public static SteamVR Instance { get; set; }
+
+    public string DriverFolderName => IsEmulationEnabled ? "00Amethyst" : "Amethyst";
 
     public SteamEvrInput VrInput { get; set; }
     public static SteamEvrInput VrInputStatic { get; set; }
@@ -55,12 +72,107 @@ public class SteamVR : IServiceEndpoint
     private Quaternion VrPlayspaceOrientationQuaternion =>
         OpenVR.System.GetRawZeroPoseToStandingAbsoluteTrackingPose().GetOrientation();
 
+    private dynamic DriverService => IsEmulationEnabled ? _00driverService : _driverService;
+
     private Exception ServerDriverException { get; set; }
     private bool ServerDriverPresent => ServiceStatus == 0;
 
     [Import(typeof(IAmethystHost))] private IAmethystHost Host { get; set; }
 
     public static IAmethystHost HostStatic { get; set; }
+
+    private Dictionary<TrackerType, SortedSet<IKeyInputAction>> _supportedInputActions => new()
+    {
+        {
+            TrackerType.TrackerLeftHand, [
+                new KeyInputAction<bool>
+                {
+                    Name = "Left Menu", Description = "Left controller's menu button",
+                    Guid = "1A3ABE96-B1B3-4ABF-9969-C87BB15B2C13", GetHost = () => Host
+                },
+                new KeyInputAction<bool>
+                {
+                    Name = "Left Trigger", Description = "Left controller's trigger button",
+                    Guid = "54B78337-23B6-4E36-A9C8-047061FB9256", GetHost = () => Host
+                },
+                new KeyInputAction<bool>
+                {
+                    Name = "Left Grip", Description = "Left controller's grip button",
+                    Guid = "36DE93FB-01DD-4DEC-ACE6-E9ADD96027B7", GetHost = () => Host
+                },
+                new KeyInputAction<bool>
+                {
+                    Name = "Left X", Description = "Left controller's X button",
+                    Guid = "DAE6AD34-B3E4-46D0-AFEE-1CACFB1387A1", GetHost = () => Host
+                },
+                new KeyInputAction<bool>
+                {
+                    Name = "Left Y", Description = "Left controller's Y button",
+                    Guid = "130B197B-EFC9-4A3A-9D3F-91A35BB83291", GetHost = () => Host
+                },
+                new KeyInputAction<double>
+                {
+                    Name = "Left Joystick X", Description = "Left controller joystick's X axis",
+                    Guid = "5F519116-9A5C-48BA-9693-D9A3741AF0AB", GetHost = () => Host
+                },
+                new KeyInputAction<double>
+                {
+                    Name = "Left Joystick Y", Description = "Left controller joystick's Y axis",
+                    Guid = "FF80F249-7F8D-4FA1-AC88-B9A1F5D623CB", GetHost = () => Host
+                }
+            ]
+        },
+        {
+            TrackerType.TrackerRightHand, [
+                new KeyInputAction<bool>
+                {
+                    Name = "Right Menu", Description = "Right controller's menu button",
+                    Guid = "6169CB90-4997-4266-AC33-83FF3FEF16AA", GetHost = () => Host
+                },
+                new KeyInputAction<bool>
+                {
+                    Name = "Right Trigger", Description = "Right controller's trigger button",
+                    Guid = "CC84BF86-6846-4A7D-9111-7919F22D0FA7", GetHost = () => Host
+                },
+                new KeyInputAction<bool>
+                {
+                    Name = "Right Grip", Description = "Right controller's grip button",
+                    Guid = "65EAFD83-C5D6-496F-BA3C-7FB0F9FED824", GetHost = () => Host
+                },
+                new KeyInputAction<bool>
+                {
+                    Name = "Right A", Description = "Right controller's A button",
+                    Guid = "98279522-D951-4EAC-9705-71EB5A9151D0", GetHost = () => Host
+                },
+                new KeyInputAction<bool>
+                {
+                    Name = "Right B", Description = "Right controller's B button",
+                    Guid = "1D7238C7-3391-44BA-B40F-5F33AEE64114", GetHost = () => Host
+                },
+                new KeyInputAction<double>
+                {
+                    Name = "Right Joystick X", Description = "Right controller joystick's X axis",
+                    Guid = "46CD8C05-16F6-42D5-9265-133E57E0933B", GetHost = () => Host
+                },
+                new KeyInputAction<double>
+                {
+                    Name = "Right Joystick Y", Description = "Right controller joystick's Y axis",
+                    Guid = "14E62950-A538-422E-B688-82CCB5B1E179", GetHost = () => Host
+                }
+            ]
+        }
+    };
+
+    public bool IsControllerEmulationEnabled =>
+        Host is not null &&
+        (Host.IsTrackerEnabled(TrackerType.TrackerLeftHand) ||
+         Host.IsTrackerEnabled(TrackerType.TrackerRightHand));
+
+    public bool IsHeadsetEmulationEnabled =>
+        Host is not null && Host.IsTrackerEnabled(TrackerType.TrackerHead);
+
+    public bool IsEmulationEnabled =>
+        IsControllerEmulationEnabled || IsHeadsetEmulationEnabled;
 
     public bool CanAutoStartAmethyst => true;
 
@@ -104,6 +216,12 @@ public class SteamVR : IServiceEndpoint
             10 => Host.RequestLocalizedString("/ServerStatuses/ServerFailure")
                 .Replace("{0}", ServiceStatus.ToString()),
 
+            -110 => Host.RequestLocalizedString("/ServerStatuses/NeedsEmulation")
+                .Replace("{0}", ServiceStatus.ToString()),
+
+            -111 => Host.RequestLocalizedString("/ServerStatuses/EmulationEnabled")
+                .Replace("{0}", ServiceStatus.ToString()),
+
             _ => Host.RequestLocalizedString("/ServerStatuses/WTF")
         }
         : $"Undefined: {ServiceStatus}\nE_UNDEFINED\nSomething weird has happened, though we can't tell what.";
@@ -115,7 +233,11 @@ public class SteamVR : IServiceEndpoint
         _ => $"https://docs.k2vr.tech/{Host?.DocsLanguageCode ?? "en"}/app/steamvr-driver-codes/#6"
     });
 
-    public Dictionary<TrackerType, SortedSet<IKeyInputAction>> SupportedInputActions => [];
+    public Dictionary<TrackerType, SortedSet<IKeyInputAction>> SupportedInputActions =>
+        Host is not null && (Host.IsTrackerEnabled(TrackerType.TrackerLeftHand) ||
+                             Host.IsTrackerEnabled(TrackerType.TrackerRightHand))
+            ? _supportedInputActions
+            : [];
 
     public SortedSet<TrackerType> AdditionalSupportedTrackerTypes =>
     [
@@ -131,18 +253,20 @@ public class SteamVR : IServiceEndpoint
         // TrackerType.TrackerWaist, // Already OK
         TrackerType.TrackerChest,
         TrackerType.TrackerCamera,
-        TrackerType.TrackerKeyboard
+        TrackerType.TrackerKeyboard,
+        TrackerType.TrackerHead,
+        TrackerType.TrackerLeftHand,
+        TrackerType.TrackerRightHand
     ];
 
     public bool IsRestartOnChangesNeeded => true;
 
-    public InputActions ControllerInputActions { get; set; } = new()
+    public InputActions ControllerInputActions
     {
-        CalibrationConfirmed = (_, _) => { },
-        CalibrationModeChanged = (_, _) => { },
-        SkeletonFlipToggled = (_, _) => { },
-        TrackingFreezeToggled = (_, _) => { }
-    };
+        // ReSharper disable once AssignNullToNotNullAttribute
+        get => IsControllerEmulationEnabled ? null : _controllerInputActions;
+        set => _controllerInputActions = value;
+    }
 
     public bool AutoStartAmethyst
     {
@@ -216,7 +340,7 @@ public class SteamVR : IServiceEndpoint
 
     public void OnLoad()
     {
-        VrInput ??= new SteamEvrInput(Host);
+        VrInput ??= new SteamEvrInput(Host, this);
         VrInputStatic = VrInput;
         HostStatic = Host;
 
@@ -227,6 +351,7 @@ public class SteamVR : IServiceEndpoint
         };
 
         PluginLoaded = true;
+        _isEmulationEnabledLast = IsEmulationEnabled;
     }
 
     public int Initialize()
@@ -257,7 +382,7 @@ public class SteamVR : IServiceEndpoint
         // Connect to the server driver
         K2ServerDriverRefresh();
 
-        // Return the the binding error if the driver is fine
+        // Return the binding error if the driver is fine
         return ServiceStatus == 0 ? serviceStatus : ServiceStatus;
     }
 
@@ -270,6 +395,26 @@ public class SteamVR : IServiceEndpoint
                 UpdateInputBindings();
                 ParseVrEvents();
             }
+        }
+        catch (Exception e)
+        {
+            Host?.Log("Exception processing a heart beat call! " +
+                      $"Message: {e.Message}", LogSeverity.Error);
+        }
+
+        try
+        {
+            if (_isEmulationEnabledLast != IsEmulationEnabled)
+            {
+                Host?.Log("Emulation config has changed!");
+                ServiceStatus = IsEmulationEnabled switch
+                {
+                    true => -110,
+                    false => -111
+                };
+            }
+
+            _isEmulationEnabledLast = IsEmulationEnabled;
         }
         catch (Exception e)
         {
@@ -318,7 +463,7 @@ public class SteamVR : IServiceEndpoint
             if (!Initialized || OpenVR.System is null) return true; // Sanity check
 
             // Auto-returns null if the service is null
-            _driverService.RequestVrRestart(reason);
+            DriverService?.RequestVrRestart(reason);
             return true; // Wait and return
         }
         catch (Exception)
@@ -332,6 +477,7 @@ public class SteamVR : IServiceEndpoint
         get
         {
             if (!Initialized || OpenVR.System is null) return (Vector3.Zero, Quaternion.Identity); // Sanity check
+            if (IsHeadsetEmulationEnabled) return null; // Sanity check don't inbreed calibration poses
 
             // Capture RAW HMD pose
             var devicePose = new TrackedDevicePose_t[1]; // HMD only
@@ -414,57 +560,94 @@ public class SteamVR : IServiceEndpoint
         };
     }
 
-    public async Task<IEnumerable<(TrackerBase Tracker, bool Success)>> SetTrackerStates(
+    public Task<IEnumerable<(TrackerBase Tracker, bool Success)>> SetTrackerStates(
         IEnumerable<TrackerBase> trackerBases, bool wantReply = true)
     {
         try
         {
             // Driver client sanity check: return empty or null if not valid
-            if (!Initialized || OpenVR.System is null || _driverService is null || ServiceStatus != 0)
-                return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
+            if (!Initialized || OpenVR.System is null || DriverService is null || ServiceStatus != 0)
+                return Task.FromResult<IEnumerable<(TrackerBase Tracker, bool Success)>>(
+                    wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null);
 
             var enumTrackerBases = trackerBases.ToList();
             foreach (var trackerBase in enumTrackerBases.ToList())
-                _driverService.SetTrackerState(trackerBase.ComTracker());
+                DriverService?.SetTrackerState(trackerBase.ComTracker());
 
-            return wantReply ? enumTrackerBases.Select(x => (x, true)) : null;
+            return Task.FromResult(wantReply ? enumTrackerBases.Select(x => (x, true)) : null);
         }
         catch (Exception e)
         {
             Host?.Log($"Failed to update one or more trackers, exception: {e.Message}");
-            return wantReply ? new List<(TrackerBase Tracker, bool Success)> { (null, false) } : null;
+            return Task.FromResult<IEnumerable<(TrackerBase Tracker, bool Success)>>(
+                wantReply ? new List<(TrackerBase Tracker, bool Success)> { (null, false) } : null);
         }
     }
 
-    public async Task<IEnumerable<(TrackerBase Tracker, bool Success)>> UpdateTrackerPoses(
+    public Task<IEnumerable<(TrackerBase Tracker, bool Success)>> UpdateTrackerPoses(
         IEnumerable<TrackerBase> trackerBases, bool wantReply = true, CancellationToken? token = null)
     {
         try
         {
             // Driver client sanity check: return empty or null if not valid
-            if (!Initialized || OpenVR.System is null || _driverService is null || ServiceStatus != 0)
-                return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
+            if (!Initialized || OpenVR.System is null || DriverService is null || ServiceStatus != 0)
+                return Task.FromResult<IEnumerable<(TrackerBase Tracker, bool Success)>>(
+                    wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null);
 
             var enumTrackerBases = trackerBases.ToList();
             foreach (var trackerBase in enumTrackerBases.ToList())
-                _driverService.UpdateTracker(trackerBase.ComTracker());
+                DriverService?.UpdateTracker(trackerBase.ComTracker());
 
-            return wantReply ? enumTrackerBases.Select(x => (x, true)) : null;
+            return Task.FromResult(wantReply ? enumTrackerBases.Select(x => (x, true)) : null);
         }
         catch (Exception e)
         {
             Host?.Log($"Failed to update one or more trackers, exception: {e.Message}");
-            return wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null;
+            return Task.FromResult<IEnumerable<(TrackerBase Tracker, bool Success)>>(
+                wantReply ? new List<(TrackerBase Tracker, bool Success)>() : null);
         }
     }
 
     public Task ProcessKeyInput(IKeyInputAction action, object data, TrackerType? receiver, CancellationToken? token = null)
     {
-        Host?.Log("Input actions are not supported with emulation disabled.");
+        if (!IsEmulationEnabled)
+        {
+            Host?.Log("Input actions are not supported with emulation disabled.");
+            return Task.CompletedTask;
+        }
+
+        if (!Initialized || OpenVR.System is null || DriverService is null || ServiceStatus != 0) return Task.CompletedTask;
+        if (data is null || action.DataType != data.GetType())
+        {
+            Host?.Log($"Received invalid data {data} with type {data?.GetType()} incompatible " +
+                      $"with key input \"{action.Name}\" of type {action.DataType} for {receiver}.");
+            return Task.CompletedTask; // Don't send to the driver service, it's not going to work anyway
+        }
+
+        var trackerType = receiver ?? SupportedInputActions.FirstOrDefault(x => x.Value.Any(y => y.Equals(action))).Key;
+        if (data is not false && data is not 0.0f && data is not 0.0) // Log only for actual data input and not defaults
+            Host?.Log($"Processed key input \"{action.Name}\" of type {action.DataType} with data {data} for {trackerType}.");
+
+        switch (data)
+        {
+            case bool boolData:
+                DriverService?.UpdateInputBoolean((driver_00Amethyst.dTrackerType)trackerType, action.Guid, Convert.ToSByte(boolData));
+                break;
+            case float scalarData:
+                DriverService?.UpdateInputScalar((driver_00Amethyst.dTrackerType)trackerType, action.Guid, scalarData);
+                break;
+            case double scalarData:
+                DriverService?.UpdateInputScalar((driver_00Amethyst.dTrackerType)trackerType, action.Guid, (float)scalarData);
+                break;
+            default:
+                Host?.Log($"Data {data} with type {data.GetType()} was not processed because its type is not supported.");
+                break;
+        }
+
         return Task.CompletedTask;
     }
 
-    public async Task<(int Status, string StatusMessage, long PingTime)> TestConnection()
+    public Task<(int Status, string StatusMessage, long PingTime)> TestConnection()
     {
         try
         {
@@ -475,58 +658,83 @@ public class SteamVR : IServiceEndpoint
             K2ServerDriverRefresh();
 
             // Driver client sanity check: return empty or null if not valid
-            if (!Initialized || OpenVR.System is null || _driverService is null ||
-                ServiceStatus != 0) return (-1, "SERVICE_INVALID", 0);
+            if (!Initialized || OpenVR.System is null || DriverService is null ||
+                ServiceStatus != 0)
+                return Task.FromResult<(int Status, string StatusMessage, long PingTime)>(
+                    (-1, "SERVICE_INVALID", 0));
 
             // Grab the current time and send the message
             var messageSendTimeStopwatch = new Stopwatch();
 
             messageSendTimeStopwatch.Start();
-            _driverService.PingDriverService(out var ms);
+
+            long ms = 0;
+            if (IsEmulationEnabled)
+                _00driverService.PingDriverService(out ms);
+            else
+                _driverService.PingDriverService(out ms);
+
             messageSendTimeStopwatch.Stop();
 
             // Return tuple with response and elapsed time
             Host.Log($"Ping: {ms - DateTimeOffset.Now.ToUnixTimeMilliseconds()}ms");
-            return (0, "OK", messageSendTimeStopwatch.ElapsedTicks);
+            return Task.FromResult((0, "OK", messageSendTimeStopwatch.ElapsedTicks));
         }
         catch (Exception e)
         {
             ServiceStatus = -10;
             ServerDriverException = e;
-            return (-1, $"EXCEPTION {e.Message}", 0);
+            return Task.FromResult<(int Status, string StatusMessage, long PingTime)>((-1, $"EXCEPTION {e.Message}", 0));
         }
     }
 
     #region Amethyst VRDriver Methods
 
-    private int InitAmethystServerAsync(string target = "BA32B754-20E3-4C8C-913B-28BBAC30531B")
+    private async Task<int> InitAmethystServerAsync(string target)
     {
         try
         {
             Host?.Log("Registering the COM proxy/stub...");
-            ((HRESULT)DriverHelper.InstallProxyStub()).ThrowIfFailed();
+            ((HRESULT)DriverHelper.InstallDriverProxyStub(IsEmulationEnabled)).ThrowIfFailed();
 
             Host?.Log("Searching for the COM driver service...");
             var guid = Guid.Parse(target);
 
             DriverHelper.GetActiveObject(ref guid, IntPtr.Zero, out var service);
 
-            Host?.Log($"Trying to cast the service into {typeof(IDriverService)}...");
-            _driverService = (IDriverService)service;
+            Host?.Log($"Trying to cast the service into {typeof(driver_Amethyst.IDriverService)}...");
+            _driverService = IsEmulationEnabled ? null : (driver_Amethyst.IDriverService)service;
+            _00driverService = IsEmulationEnabled ? (driver_00Amethyst.IDriverService)service : null;
 
-            Host?.Log($"{nameof(service)} is {typeof(IDriverService)}!");
+            Host?.Log($"{nameof(service)} is {DriverService?.GetType()}!");
         }
         catch (COMException e)
         {
             Host?.Log(e.ToString(), LogSeverity.Error);
             ServerDriverException = e;
-            return -1;
+
+            return IsEmulationEnabled switch
+            {
+                true when OpenVrPaths.TryRead()?.external_drivers.Contains((await ApplicationData.Current.LocalFolder
+                    .CreateFolderAsync("Amethyst", CreationCollisionOption.OpenIfExists)).Path) ?? false => -110,
+                false when OpenVrPaths.TryRead()?.external_drivers.Contains((await ApplicationData.Current.LocalFolder
+                    .CreateFolderAsync("00Amethyst", CreationCollisionOption.OpenIfExists)).Path) ?? false => -111,
+                _ => -1
+            };
         }
         catch (TimeoutException e)
         {
             Host?.Log(e.ToString(), LogSeverity.Error);
             ServerDriverException = e; // Backup the exception
-            return -1;
+
+            return IsEmulationEnabled switch
+            {
+                true when OpenVrPaths.TryRead()?.external_drivers.Contains((await ApplicationData.Current.LocalFolder
+                    .CreateFolderAsync("Amethyst", CreationCollisionOption.OpenIfExists)).Path) ?? false => -110,
+                false when OpenVrPaths.TryRead()?.external_drivers.Contains((await ApplicationData.Current.LocalFolder
+                    .CreateFolderAsync("00Amethyst", CreationCollisionOption.OpenIfExists)).Path) ?? false => -111,
+                _ => -1
+            };
         }
         catch (Exception e)
         {
@@ -538,7 +746,7 @@ public class SteamVR : IServiceEndpoint
         return 0;
     }
 
-    private int CheckK2ServerStatusAsync()
+    private async Task<int> CheckK2ServerStatusAsync()
     {
         // Don't check if OpenVR failed
         if (ServiceStatus == 1) return 1;
@@ -547,7 +755,9 @@ public class SteamVR : IServiceEndpoint
         {
             /* Initialize the port */
             Host.Log("Initializing the server IPC...");
-            var initCode = InitAmethystServerAsync();
+            var initCode = await InitAmethystServerAsync(IsEmulationEnabled
+                ? "BA32B754-20E3-4C8C-913B-28BBAC30531C"
+                : "BA32B754-20E3-4C8C-913B-28BBAC30531B");
 
             Host.Log($"Server IPC initialization {(initCode == 0 ? "succeed" : "failed")}, exit code: {initCode}",
                 initCode == 0 ? LogSeverity.Info : LogSeverity.Error);
@@ -561,11 +771,16 @@ public class SteamVR : IServiceEndpoint
                 if (initCode != 0)
                     return initCode;
 
-                if (_driverService is null)
+                if (DriverService is null)
                     return -2;
 
                 // Grab the current time and send the message
-                _driverService.PingDriverService(out var ms);
+                long ms;
+                if (IsEmulationEnabled)
+                    _00driverService.PingDriverService(out ms);
+                else
+                    _driverService.PingDriverService(out ms);
+
                 Host.Log($"Ping: {ms - DateTimeOffset.Now.ToUnixTimeMilliseconds()}ms");
 
                 return 0; // Everything should be fine
@@ -574,7 +789,15 @@ public class SteamVR : IServiceEndpoint
             {
                 Host.Log(e.ToString(), LogSeverity.Error);
                 ServerDriverException = e;
-                return -1;
+
+                return IsEmulationEnabled switch
+                {
+                    true when OpenVrPaths.TryRead()?.external_drivers.Contains((await ApplicationData.Current.LocalFolder
+                        .CreateFolderAsync("Amethyst", CreationCollisionOption.OpenIfExists)).Path) ?? false => -110,
+                    false when OpenVrPaths.TryRead()?.external_drivers.Contains((await ApplicationData.Current.LocalFolder
+                        .CreateFolderAsync("00Amethyst", CreationCollisionOption.OpenIfExists)).Path) ?? false => -111,
+                    _ => -1
+                };
             }
             catch (Exception e)
             {
@@ -606,7 +829,7 @@ public class SteamVR : IServiceEndpoint
 
     private void K2ServerDriverRefresh()
     {
-        ServiceStatus = CheckK2ServerStatusAsync();
+        ServiceStatus = CheckK2ServerStatusAsync().Result;
 
         // Request a quick status refresh
         Host?.RefreshStatusInterface();
@@ -686,6 +909,14 @@ public class SteamVR : IServiceEndpoint
         // Here, update EVR Input actions
         if (!Initialized || OpenVR.System is null) return;
 
+        // Don't process input bindings for emulated controllers
+        if (IsControllerEmulationEnabled)
+        {
+            _controllerInputActions.MovePositionValues = Vector3.Zero;
+            _controllerInputActions.AdjustRotationValues = Vector2.Zero;
+            return; // Don't proceed any further
+        }
+
         // Backup the current (OLD) data
         var bFreezeState = VrInput.TrackerFreezeActionData;
         var bFlipToggleState = VrInput.TrackerFlipToggleData;
@@ -700,7 +931,7 @@ public class SteamVR : IServiceEndpoint
         if (!VrInput.TrackerFreezeActionData && bFreezeState)
         {
             Host.Log("[Input Actions] Input: Tracking freeze toggled");
-            ControllerInputActions.TrackingFreezeToggled?.Invoke(this, EventArgs.Empty);
+            _controllerInputActions.TrackingFreezeToggled?.Invoke(this, EventArgs.Empty);
         }
 
         // Update the Flip Toggle : toggle
@@ -708,30 +939,30 @@ public class SteamVR : IServiceEndpoint
         if (!VrInput.TrackerFlipToggleData && bFlipToggleState)
         {
             Host.Log("[Input Actions] Input: Flip toggled");
-            ControllerInputActions.SkeletonFlipToggled?.Invoke(this, EventArgs.Empty);
+            _controllerInputActions.SkeletonFlipToggled?.Invoke(this, EventArgs.Empty);
         }
 
         // Update the Calibration:Confirm : one-time switch
         // Only one-way switch this time, reset at calibration's end
         if (VrInput.ConfirmAndSaveActionData)
-            ControllerInputActions.CalibrationConfirmed?.Invoke(this, EventArgs.Empty);
+            _controllerInputActions.CalibrationConfirmed?.Invoke(this, EventArgs.Empty);
 
         // Update the Calibration:ModeSwap : one-time switch
         // Only if the state has changed from 1 to 0: chord was done
         if (VrInput.ModeSwapActionData)
-            ControllerInputActions.CalibrationModeChanged?.Invoke(this, EventArgs.Empty);
+            _controllerInputActions.CalibrationModeChanged?.Invoke(this, EventArgs.Empty);
 
         // Update the Calibration:FineTune : held switch
         var posMultiplexer = VrInput.FineTuneActionData ? .0015f : .015f;
         var rotMultiplexer = VrInput.FineTuneActionData ? .1f : 1f;
 
         // Update the Calibration:Joystick : vector2 x2
-        ControllerInputActions.MovePositionValues =
+        _controllerInputActions.MovePositionValues =
             new Vector3(VrInput.LeftJoystickActionData.X * posMultiplexer,
                 VrInput.RightJoystickActionData.Y * posMultiplexer,
                 -VrInput.LeftJoystickActionData.Y * posMultiplexer);
 
-        ControllerInputActions.AdjustRotationValues =
+        _controllerInputActions.AdjustRotationValues =
             new Vector2(VrInput.RightJoystickActionData.Y * MathF.PI / 280f * rotMultiplexer,
                 -VrInput.LeftJoystickActionData.X * MathF.PI / 280f * rotMultiplexer);
     }
@@ -789,8 +1020,8 @@ public class SteamVR : IServiceEndpoint
                 header = header.Replace("{0}",
                     Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Buttons/Oculus"));
 
-            ControllerInputActions.TrackingFreezeActionTitleString = header;
-            ControllerInputActions.TrackingFreezeActionContentString =
+            _controllerInputActions.TrackingFreezeActionTitleString = header;
+            _controllerInputActions.TrackingFreezeActionContentString =
                 Host.RequestLocalizedString("/GeneralPage/Tips/TrackingFreeze/Footer");
         }
 
@@ -825,8 +1056,8 @@ public class SteamVR : IServiceEndpoint
                 header = header.Replace("{0}",
                     Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Buttons/Oculus"));
 
-            ControllerInputActions.SkeletonFlipActionTitleString = header;
-            ControllerInputActions.SkeletonFlipActionContentString =
+            _controllerInputActions.SkeletonFlipActionTitleString = header;
+            _controllerInputActions.SkeletonFlipActionContentString =
                 Host.RequestLocalizedString("/SettingsPage/Tips/FlipToggle/Footer");
         }
     }
@@ -836,14 +1067,14 @@ public class SteamVR : IServiceEndpoint
 
 public static class OvrExtensions
 {
-    public static dTrackerBase ComTracker(this TrackerBase tracker)
+    public static driver_Amethyst.dTrackerBase ComTracker(this TrackerBase tracker)
     {
-        return new dTrackerBase
+        return new driver_Amethyst.dTrackerBase
         {
             ConnectionState = Convert.ToSByte(tracker.ConnectionState),
             TrackingState = Convert.ToSByte(tracker.TrackingState == TrackedJointState.StateTracked),
             Serial = tracker.Serial,
-            Role = (dTrackerType)tracker.Role,
+            Role = (driver_Amethyst.dTrackerType)tracker.Role,
             Position = tracker.Position.ComVector(),
             Orientation = tracker.Orientation.ComQuaternion(),
             Velocity = tracker.Velocity.ComVector(),
@@ -853,20 +1084,20 @@ public static class OvrExtensions
         };
     }
 
-    public static dVector3 ComVector(this Vector3 v)
+    public static driver_Amethyst.dVector3 ComVector(this Vector3 v)
     {
-        return new dVector3 { X = v.X, Y = v.Y, Z = v.Z };
+        return new driver_Amethyst.dVector3 { X = v.X, Y = v.Y, Z = v.Z };
     }
 
-    public static dVector3Nullable ComVector(this Vector3? v)
+    public static driver_Amethyst.dVector3Nullable ComVector(this Vector3? v)
     {
-        return new dVector3Nullable
-            { HasValue = Convert.ToSByte(v.HasValue), Value = v?.ComVector() ?? new dVector3() };
+        return new driver_Amethyst.dVector3Nullable
+            { HasValue = Convert.ToSByte(v.HasValue), Value = v?.ComVector() ?? new driver_Amethyst.dVector3() };
     }
 
-    public static dQuaternion ComQuaternion(this Quaternion q)
+    public static driver_Amethyst.dQuaternion ComQuaternion(this Quaternion q)
     {
-        return new dQuaternion { X = q.X, Y = q.Y, Z = q.Z, W = q.W };
+        return new driver_Amethyst.dQuaternion { X = q.X, Y = q.Y, Z = q.Z, W = q.W };
     }
 
     public static Vector3 GetPosition(this HmdMatrix34_t mat)

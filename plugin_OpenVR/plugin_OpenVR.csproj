@@ -24,8 +24,8 @@
 		<PackageReference Include="Amethyst.Plugins.Contract" Version="0.3.33" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.11.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-		<PackageReference Include="System.ComponentModel.Composition" Version="9.0.0" />
-		<PackageReference Include="System.ComponentModel.Composition.Registration" Version="9.0.0" />
+		<PackageReference Include="System.ComponentModel.Composition" Version="7.0.0" />
+		<PackageReference Include="System.ComponentModel.Composition.Registration" Version="7.0.0" />
 		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240627000" />
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1" />
 		<PackageReference Include="Vanara.PInvoke.Ole" Version="4.0.4" />
@@ -87,6 +87,7 @@
 		<Folder Include="Assets\Resources\" />
 	</ItemGroup>
 
+	<!--The normal OpenVR driver-->
 	<ItemGroup>
 		<Reference Include="com.driver_Amethyst" Condition="'$(Configuration)'=='Debug'">
 			<HintPath Condition="Exists('bin\Debug\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\')">bin\Debug\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\com.driver_Amethyst.dll</HintPath>
@@ -98,6 +99,21 @@
 			<HintPath Condition="Exists('bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\')">bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\com.driver_Amethyst.dll</HintPath>
 			<HintPath Condition="Exists('..\x64\Release\')">..\x64\Release\com.driver_Amethyst.dll</HintPath>
 			<!--<HintPath>com.driver_Amethyst.dll</HintPath>-->
+		</Reference>
+	</ItemGroup>
+
+	<!--The emulation-enabled one-->
+	<ItemGroup>
+		<Reference Include="com.driver_00Amethyst" Condition="'$(Configuration)'=='Debug'">
+			<HintPath Condition="Exists('bin\Debug\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\')">bin\Debug\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\com.driver_00Amethyst.dll</HintPath>
+			<HintPath Condition="Exists('..\x64\Debug\')">..\x64\Debug\com.driver_00Amethyst.dll</HintPath>
+			<!--<HintPath>com.driver_00Amethyst.dll</HintPath>-->
+		</Reference>
+
+		<Reference Include="com.driver_00Amethyst" Condition="'$(Configuration)'=='Release'">
+			<HintPath Condition="Exists('bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\')">bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\com.driver_00Amethyst.dll</HintPath>
+			<HintPath Condition="Exists('..\x64\Release\')">..\x64\Release\com.driver_00Amethyst.dll</HintPath>
+			<!--<HintPath>com.driver_00Amethyst.dll</HintPath>-->
 		</Reference>
 	</ItemGroup>
 

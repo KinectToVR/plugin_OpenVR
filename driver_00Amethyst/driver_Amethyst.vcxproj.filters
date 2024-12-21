@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{1f6135d4-d3d0-4d33-b09e-884a6aaf5c33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interface Files">
+      <UniqueIdentifier>{3e0194e9-fc26-4e90-af0a-fe56db45d0f5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooking Files">
+      <UniqueIdentifier>{89933c5b-7c0c-449b-8296-1e168fcb872f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooking Files\Header Files">
+      <UniqueIdentifier>{51cd8672-4fa1-47d0-9060-0cf213415bfc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooking Files\Source Files">
+      <UniqueIdentifier>{f029b289-7c1e-401a-8f18-5c919f4e471e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="module.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DriverService.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated Files\$(Platform)\driver_Amethyst_i.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated Files\$(Platform)\IDriverService_i.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated Files\$(Platform)\IDriverService_p.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated Files\$(Platform)\IVersionedApi_i.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated Files\$(Platform)\IVersionedApi_p.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated Files\$(Platform)\dlldata.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BodyTracker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ServerProvider.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="InterfaceHookInjector.cpp">
+      <Filter>Hooking Files\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking.cpp">
+      <Filter>Hooking Files\Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DriverService.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated Files\$(Platform)\driver_Amethyst.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated Files\$(Platform)\IDriverService.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated Files\$(Platform)\IVersionedApi.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BodyTracker.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated Files\x64\DataContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Logging.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InterfaceHookInjector.h">
+      <Filter>Hooking Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooking.h">
+      <Filter>Hooking Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ServerProvider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="vcpkg.json" />
+    <None Include="driver_Amethyst.def">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Midl Include="driver_Amethyst.idl">
+      <Filter>Interface Files</Filter>
+    </Midl>
+    <Midl Include="IDriverService.idl">
+      <Filter>Interface Files</Filter>
+    </Midl>
+    <Midl Include="IVersionedApi.idl">
+      <Filter>Interface Files</Filter>
+    </Midl>
+    <Midl Include="DataContract.idl">
+      <Filter>Interface Files</Filter>
+    </Midl>
+  </ItemGroup>
+</Project>

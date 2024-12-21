@@ -1,0 +1,67 @@
+import "unknwn.idl";
+
+enum dTrackerType
+{
+ TrackerHanded,
+ TrackerLeftFoot,
+ TrackerRightFoot,
+ TrackerLeftShoulder,
+ TrackerRightShoulder,
+ TrackerLeftElbow,
+ TrackerRightElbow,
+ TrackerLeftKnee,
+ TrackerRightKnee,
+ TrackerWaist,
+ TrackerChest,
+ TrackerCamera,
+ TrackerKeyboard,
+ TrackerHead,
+ TrackerLeftHand,
+ TrackerRightHand
+};
+
+struct dVector3
+{
+ float X;
+ float Y;
+ float Z;
+};
+
+struct dVector3Nullable
+{
+ boolean HasValue;
+ struct dVector3 Value;
+};
+
+struct dQuaternion
+{
+ float X;
+ float Y;
+ float Z;
+ float W;
+};
+
+struct dTrackerBase 
+{
+ boolean ConnectionState;
+ boolean TrackingState;
+ [string] char* Serial;
+
+ enum dTrackerType Role;
+ struct dVector3 Position;
+ struct dQuaternion Orientation;
+
+ struct dVector3Nullable Velocity;
+ struct dVector3Nullable Acceleration;
+ struct dVector3Nullable AngularVelocity;
+ struct dVector3Nullable AngularAcceleration;
+};
+
+struct dDriverPose 
+{
+ boolean ConnectionState;
+ boolean TrackingState;
+ 
+ struct dVector3 Position;
+ struct dQuaternion Orientation;
+};

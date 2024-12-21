@@ -236,12 +236,13 @@ public class InputAction(string name = "", string type = "boolean", string requi
 }
 
 [method: SetsRequiredMembers]
-public class SteamEvrInput(IAmethystHost host)
+public class SteamEvrInput(IAmethystHost host, SteamVR parent)
 {
     // The action sets
     private VRActiveActionSet_t _mDefaultActionSet;
     private IAmethystHost Host { get; } = host;
     public ActionsManifest RegisteredActions { get; set; } = new();
+    private SteamVR Parent { get; } = parent;
 
     public bool TrackerFreezeActionData => RegisteredActions["/actions/default/in/TrackerFreeze"]?.Data ?? false;
     public bool TrackerFlipToggleData => RegisteredActions["/actions/default/in/FlipToggle"]?.Data ?? false;
@@ -266,12 +267,13 @@ public class SteamEvrInput(IAmethystHost host)
     {
         try
         {
-            var manifestPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "action_manifest.json");
+            Directory.CreateDirectory(Path.Join(PackageUtils.GetAmethystAppDataPath(), Parent.DriverFolderName));
+            var manifestPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), Parent.DriverFolderName, "action_manifest.json");
             File.WriteAllText(manifestPath, JsonConvert.SerializeObject(RegisteredActions, Formatting.Indented));
 
-            Directory.CreateDirectory(Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "input_profiles"));
+            Directory.CreateDirectory(Path.Join(PackageUtils.GetAmethystAppDataPath(), Parent.DriverFolderName, "input_profiles"));
             new DirectoryInfo(Path.Join(Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.FullName, "input_profiles"))
-                .CopyToFolder(Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "input_profiles"));
+                .CopyToFolder(Path.Join(PackageUtils.GetAmethystAppDataPath(), Parent.DriverFolderName, "input_profiles"));
         }
         catch (Exception e)
         {
@@ -283,7 +285,8 @@ public class SteamEvrInput(IAmethystHost host)
     {
         try
         {
-            var manifestPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "action_manifest.json");
+            Directory.CreateDirectory(Path.Join(PackageUtils.GetAmethystAppDataPath(), Parent.DriverFolderName));
+            var manifestPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), Parent.DriverFolderName, "action_manifest.json");
             RegisteredActions = File.Exists(manifestPath)
                 ? JsonConvert.DeserializeObject<ActionsManifest>(
                     File.ReadAllText(manifestPath)) ?? new ActionsManifest(true)
@@ -299,7 +302,7 @@ public class SteamEvrInput(IAmethystHost host)
             Host?.Log(e);
         }
 
-        return Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst", "action_manifest.json");
+        return Path.Join(PackageUtils.GetAmethystAppDataPath(), Parent.DriverFolderName, "action_manifest.json");
     }
 
     // Note: SteamVR must be initialized beforehand.

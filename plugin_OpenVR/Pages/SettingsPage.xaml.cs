@@ -256,23 +256,23 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
             if (PackageUtils.IsAmethystPackaged)
             {
                 // Copy all driver files to Amethyst's local data folder
-                Directory.CreateDirectory(Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst"));
+                Directory.CreateDirectory(Path.Join(ApplicationData.Current.LocalFolder.Path, DataParent.DriverFolderName));
 
                 // Copy the manifest
                 new FileInfo(Path.Join(
                         Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.FullName, "Amethyst.vrmanifest"))
-                    .CopyTo(Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst", "Amethyst.vrmanifest"), true);
+                    .CopyTo(Path.Join(ApplicationData.Current.LocalFolder.Path, DataParent.DriverFolderName, "Amethyst.vrmanifest"), true);
 
                 // Copy the icon
                 var icon = new FileInfo(Path.Join(
                     Directory.GetParent(Environment.ProcessPath!)!.FullName, "Assets", "ktvr.png"));
 
                 if (icon.Exists)
-                    icon.CopyTo(Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst", "ktvr.png"), true);
+                    icon.CopyTo(Path.Join(ApplicationData.Current.LocalFolder.Path, DataParent.DriverFolderName, "ktvr.png"), true);
 
                 // Assume it's done now and get the path
                 var copiedManifestPath =
-                    Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst", "Amethyst.vrmanifest");
+                    Path.Join(ApplicationData.Current.LocalFolder.Path, DataParent.DriverFolderName, "Amethyst.vrmanifest");
 
                 // If there's none (still), cry about it and abort
                 if (string.IsNullOrEmpty(copiedManifestPath) || !File.Exists(copiedManifestPath))
@@ -297,7 +297,7 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
 
             // Compose the manifest path depending on where our plugin is
             var manifestPath = PackageUtils.IsAmethystPackaged
-                ? Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst", "Amethyst.vrmanifest")
+                ? Path.Join(ApplicationData.Current.LocalFolder.Path, DataParent.DriverFolderName, "Amethyst.vrmanifest")
                 : Path.Join(Directory.GetParent(
                     Assembly.GetAssembly(GetType())!.Location)?.FullName, "Amethyst.vrmanifest");
 
@@ -495,12 +495,12 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         {
             // Copy all driver files to Amethyst's local data folder
             new DirectoryInfo(Path.Join(Directory.GetParent(
-                    Assembly.GetExecutingAssembly().Location)!.FullName, "Driver", "Amethyst"))
+                    Assembly.GetExecutingAssembly().Location)!.FullName, "Driver", DataParent.DriverFolderName))
                 .CopyToFolder((await ApplicationData.Current.LocalFolder.CreateFolderAsync(
-                    "Amethyst", CreationCollisionOption.OpenIfExists)).Path);
+                    DataParent.DriverFolderName, CreationCollisionOption.OpenIfExists)).Path);
 
             // Assume it's done now and get the path
-            localAmethystDriverPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst");
+            localAmethystDriverPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), DataParent.DriverFolderName);
 
             // If there's none (still), cry about it and abort
             if (string.IsNullOrEmpty(localAmethystDriverPath) || !Directory.Exists(localAmethystDriverPath))
@@ -584,7 +584,7 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
                 continue; // Don't report it
             }
 
-            isAmethystDriverPresent = true;
+            isAmethystDriverPresent = !externalDriver.StartsWith(ApplicationData.Current.LocalFolder.Path);
             amethystDriverPathsList.Add(externalDriver);
         }
 
@@ -597,7 +597,7 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         // Try-Catch it
         try
         {
-            if (isAmethystDriverPresent || resultPaths.Exists.CopiedDriverExists)
+            if (isAmethystDriverPresent || amethystDriverPathsList.Any() || resultPaths.Exists.CopiedDriverExists)
             {
                 // Delete the copied Amethyst Driver (if exists)
                 if (resultPaths.Exists.CopiedDriverExists)
@@ -668,8 +668,8 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
             var steamVrSettings = JsonObject.Parse(await File.ReadAllTextAsync(resultPaths.Path.VrSettingsPath));
 
             // Enable & unblock the Amethyst Driver
-            steamVrSettings.Remove("driver_Amethyst");
-            steamVrSettings.Add("driver_Amethyst",
+            steamVrSettings.Remove($"driver_{SteamVR.Instance.DriverFolderName}");
+            steamVrSettings.Add($"driver_{SteamVR.Instance.DriverFolderName}",
                 new JsonObject
                 {
                     new KeyValuePair<string, IJsonValue>("enable", JsonValue.CreateBooleanValue(true)),

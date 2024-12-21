@@ -20,6 +20,21 @@ internal class OpenVrPaths
         return temp;
     }
 
+    public static OpenVrPaths TryRead()
+    {
+        try
+        {
+            var temp = JsonFile.Read<OpenVrPaths>(Path);
+            temp.external_drivers ??= [];
+
+            return temp;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     public void Write()
     {
         JsonFile.Write(Path, this);

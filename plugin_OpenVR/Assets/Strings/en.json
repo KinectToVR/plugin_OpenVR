@@ -107,6 +107,14 @@
             "translation": "FATAL SERVER FAILURE (Code {0})\nE_FATAL_SERVER_FAILURE\nPlease restart, check logs and write to us on Discord."
         },
         {
+            "id": "/ServerStatuses/NeedsEmulation",
+            "translation": "SERVER CONFIGURATION ERROR (Code {0})\nE_NEED_EMULATION\nCurrently registered OpenVR driver does not support emulation. Please re-register the driver entry from SteamVR service settings within Amethyst."
+        },
+        {
+            "id": "/ServerStatuses/EmulationEnabled",
+            "translation": "SERVER CONFIGURATION ERROR (Code {0})\nE_EMULATION_ENABLED\nCurrently registered OpenVR driver has device and input emulation enabled. Please re-register the driver entry from SteamVR service settings within Amethyst."
+        },
+        {
             "id": "/CrashHandler/ReRegister/DriverNotFound",
             "translation": "The Amethyst Driver folder wasn't found.\nIs it even somewhere around here...?"
         },

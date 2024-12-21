@@ -47,7 +47,7 @@ public class VrHelper
         }
 
         SteamVrSettingsPath = Path.Combine(SteamPath, "config", "steamvr.vrsettings");
-        CopiedDriverPath = Path.Combine(SteamVrPath, "drivers", "Amethyst");
+        CopiedDriverPath = Path.Combine(SteamVrPath, "drivers", SteamVR.Instance?.DriverFolderName ?? "Amethyst");
 
         // Return the found-outs
         return ((
@@ -187,7 +187,7 @@ public class VrHelper
             var ptr = OpenProcess(ProcessAccessFlags.QueryLimitedInformation, false, p.Id);
             return !QueryFullProcessImageName(ptr, 0, builder, ref capacity) ? null : builder.ToString();
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return null;
         }

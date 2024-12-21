@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1742\build\Microsoft.Windows.SDK.BuildTools.props" Condition="Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1742\build\Microsoft.Windows.SDK.BuildTools.props')" />
+  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.props')" />
+  <Import Project="..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.props" Condition="Exists('..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.props')" />
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{1F6353F8-F145-3A8D-7DBD-25F4351752EE}</ProjectGuid>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CppWinRTModernIDL>false</CppWinRTModernIDL>
+    <CppWinRTGenerateWindowsMetadata>true</CppWinRTGenerateWindowsMetadata>
+    <VcpkgUseStatic>true</VcpkgUseStatic>
+    <CppWinRTRootNamespaceAutoMerge>true</CppWinRTRootNamespaceAutoMerge>
+    <CppWinRTOptimized>true</CppWinRTOptimized>
+    <RootNamespace>driver_Amethyst</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <DesktopCompatible>true</DesktopCompatible>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <DesktopCompatible>true</DesktopCompatible>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnabled>false</VcpkgEnabled>
+  </PropertyGroup>
+  <Import Project="..\Common\CppProject.props" />
+  <ItemDefinitionGroup Label="Globals">
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);Generated Files\$(Platform);$(SolutionDir)vendor;$(SolutionDir)vendor\openvr\headers;$(ProjectDir)Generated Files;$(SolutionDir)vendor\minhook\include</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_AMD64_;driver_Amethyst_EXPORTS;_CRT_SECURE_NO_WARNINGS;WINRT_NO_MODULE_LOCK;RPCPROXY_ENABLE_CPP_NO_CINTERFACE;PROXY_CLSID_IS={ 0xb3901d84, 0xb3ba, 0x4347, { 0x8c, 0x5f, 0xee, 0xcf, 0xe5, 0x74, 0x55, 0xd } };ENTRY_PREFIX=PSFactory_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;rpcrt4.lib;runtimeobject.lib;openvr_api.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>driver_Amethyst.def</ModuleDefinitionFile>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+    <Midl>
+      <OutputDirectory>Generated Files\$(Platform)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>$(ProjectName).tlb</TypeLibraryName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp20</LanguageStandard>
+    </ClCompile>
+    <PreBuildEvent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">powershell -Command New-Item -ItemType Directory -Force -Path '$(IntDirFullPath)Generated Files\MIDL\'
+
+powershell -Command midl /amd64 '$(ProjectDir)driver_Amethyst.idl' /tlb '$(IntDirFullPath)Generated Files\MIDL\driver_Amethyst.tlb' /I '$(ProjectDir)'
+powershell -Command tlbimp '$(IntDirFullPath)Generated Files\MIDL\driver_Amethyst.tlb' /machine:x64 /out:'$(OutDir)com.$(ProjectName).dll'</Command>
+    </PreBuildEvent>
+    <Link>
+      <AdditionalLibraryDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)vendor\openvr\lib\win64;$(SolutionDir)vendor\minhook\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <TreatLinkerWarningAsErrors Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatLinkerWarningAsErrors>
+    </Link>
+    <PostBuildEvent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">xcopy /y /d "$(SolutionDir)external\00driver_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\00Amethyst\"
+xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\00Amethyst\bin\win64\"
+xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdcpp20</LanguageStandard>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <PreBuildEvent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">powershell -Command New-Item -ItemType Directory -Force -Path '$(IntDirFullPath)Generated Files\MIDL\'
+
+powershell -Command midl /amd64 '$(ProjectDir)driver_Amethyst.idl' /tlb '$(IntDirFullPath)Generated Files\MIDL\driver_Amethyst.tlb' /I '$(ProjectDir)'
+powershell -Command tlbimp '$(IntDirFullPath)Generated Files\MIDL\driver_Amethyst.tlb' /machine:x64 /out:'$(OutDir)com.$(ProjectName).dll'</Command>
+    </PreBuildEvent>
+    <Link>
+      <AdditionalLibraryDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)vendor\openvr\lib\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <TreatLinkerWarningAsErrors Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatLinkerWarningAsErrors>
+    </Link>
+    <PostBuildEvent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">xcopy /y /d "$(SolutionDir)external\00driver_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\00Amethyst\"
+xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\00Amethyst\bin\win64\"
+xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='ARM64'">
+    <ClCompile>
+      <!-- Fix an issue where RpcProxy.h would not do anything under ARM64. -->
+      <PreprocessorDefinitions>WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="BodyTracker.cpp" />
+    <ClCompile Include="Generated Files\$(Platform)\dlldata.c" />
+    <ClCompile Include="Generated Files\$(Platform)\driver_Amethyst_i.c" />
+    <ClCompile Include="Generated Files\$(Platform)\IDriverService_i.c" />
+    <ClCompile Include="Generated Files\$(Platform)\IDriverService_p.c" />
+    <ClCompile Include="Generated Files\$(Platform)\IVersionedApi_i.c" />
+    <ClCompile Include="Generated Files\$(Platform)\IVersionedApi_p.c" />
+    <ClCompile Include="Hooking.cpp" />
+    <ClCompile Include="InterfaceHookInjector.cpp" />
+    <ClCompile Include="module.cpp" />
+    <ClCompile Include="ServerProvider.cpp" />
+    <ClCompile Include="DriverService.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="driver_Amethyst.def" />
+    <None Include="packages.config" />
+    <None Include="vcpkg.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BodyTracker.h" />
+    <ClInclude Include="Generated Files\$(Platform)\driver_Amethyst.h" />
+    <ClInclude Include="Generated Files\$(Platform)\IDriverService.h" />
+    <ClInclude Include="Generated Files\$(Platform)\IVersionedApi.h" />
+    <ClInclude Include="Generated Files\x64\DataContract.h" />
+    <ClInclude Include="DriverService.h" />
+    <ClInclude Include="Hooking.h" />
+    <ClInclude Include="InterfaceHookInjector.h" />
+    <ClInclude Include="Logging.h" />
+    <ClInclude Include="ServerProvider.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Midl Include="driver_Amethyst.idl" />
+    <Midl Include="IDriverService.idl" />
+    <Midl Include="IVersionedApi.idl" />
+    <Midl Include="DataContract.idl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\vendor\minhook\build\VC16\libMinHook.vcxproj">
+      <Project>{f142a341-5ee0-442d-a15f-98ae9b48dbae}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.props'))" />
+    <Error Condition="!Exists('..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.240803.1\build\native\Microsoft.Windows.ImplementationLibrary.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.ImplementationLibrary.1.0.240803.1\build\native\Microsoft.Windows.ImplementationLibrary.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1742\build\Microsoft.Windows.SDK.BuildTools.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1742\build\Microsoft.Windows.SDK.BuildTools.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1742\build\Microsoft.Windows.SDK.BuildTools.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1742\build\Microsoft.Windows.SDK.BuildTools.targets'))" />
+  </Target>
+  <Import Project="..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.targets" Condition="Exists('..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.targets')" />
+  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.targets')" />
+  <Import Project="..\packages\Microsoft.Windows.ImplementationLibrary.1.0.240803.1\build\native\Microsoft.Windows.ImplementationLibrary.targets" Condition="Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.240803.1\build\native\Microsoft.Windows.ImplementationLibrary.targets')" />
+  <Import Project="..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1742\build\Microsoft.Windows.SDK.BuildTools.targets" Condition="Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1742\build\Microsoft.Windows.SDK.BuildTools.targets')" />
+</Project>
