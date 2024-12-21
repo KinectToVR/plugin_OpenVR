@@ -91,13 +91,13 @@
 	<ItemGroup>
 		<Reference Include="com.driver_Amethyst" Condition="'$(Configuration)'=='Debug'">
 			<HintPath Condition="Exists('bin\Debug\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\')">bin\Debug\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\com.driver_Amethyst.dll</HintPath>
-			<HintPath Condition="Exists('..\x64\Debug\')">..\x64\Debug\com.driver_Amethyst.dll</HintPath>
+			<HintPath Condition="Exists('..\x64\Debug\driver_Amethyst\')">..\x64\Debug\driver_Amethyst\com.driver_Amethyst.dll</HintPath>
 			<!--<HintPath>com.driver_Amethyst.dll</HintPath>-->
 		</Reference>
 
 		<Reference Include="com.driver_Amethyst" Condition="'$(Configuration)'=='Release'">
 			<HintPath Condition="Exists('bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\')">bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\com.driver_Amethyst.dll</HintPath>
-			<HintPath Condition="Exists('..\x64\Release\')">..\x64\Release\com.driver_Amethyst.dll</HintPath>
+			<HintPath Condition="Exists('..\x64\Release\driver_Amethyst\')">..\x64\Release\driver_Amethyst\com.driver_Amethyst.dll</HintPath>
 			<!--<HintPath>com.driver_Amethyst.dll</HintPath>-->
 		</Reference>
 	</ItemGroup>
@@ -106,21 +106,21 @@
 	<ItemGroup>
 		<Reference Include="com.driver_00Amethyst" Condition="'$(Configuration)'=='Debug'">
 			<HintPath Condition="Exists('bin\Debug\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\')">bin\Debug\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\com.driver_00Amethyst.dll</HintPath>
-			<HintPath Condition="Exists('..\x64\Debug\')">..\x64\Debug\com.driver_00Amethyst.dll</HintPath>
+			<HintPath Condition="Exists('..\x64\Debug\driver_00Amethyst\')">..\x64\Debug\driver_00Amethyst\com.driver_00Amethyst.dll</HintPath>
 			<!--<HintPath>com.driver_00Amethyst.dll</HintPath>-->
 		</Reference>
 
 		<Reference Include="com.driver_00Amethyst" Condition="'$(Configuration)'=='Release'">
 			<HintPath Condition="Exists('bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\')">bin\Release\net7.0\win10-x64\publish\Driver\Amethyst\bin\win64\com.driver_00Amethyst.dll</HintPath>
-			<HintPath Condition="Exists('..\x64\Release\')">..\x64\Release\com.driver_00Amethyst.dll</HintPath>
+			<HintPath Condition="Exists('..\x64\Release\driver_00Amethyst\')">..\x64\Release\driver_00Amethyst\com.driver_00Amethyst.dll</HintPath>
 			<!--<HintPath>com.driver_00Amethyst.dll</HintPath>-->
 		</Reference>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Page Update="Pages\SettingsPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Page>
+		<Page Update="Pages\SettingsPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
 	</ItemGroup>
 
 	<Target Name="XamlCopy" AfterTargets="Publish">
