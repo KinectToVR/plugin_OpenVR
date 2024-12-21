@@ -463,7 +463,10 @@ public class SteamVR : IServiceEndpoint
             if (!Initialized || OpenVR.System is null) return true; // Sanity check
 
             // Auto-returns null if the service is null
-            DriverService?.RequestVrRestart(reason);
+            if (IsEmulationEnabled)
+                _00driverService?.RequestVrRestart(reason);
+            else _driverService?.RequestVrRestart(reason);
+
             return true; // Wait and return
         }
         catch (Exception)
@@ -572,7 +575,10 @@ public class SteamVR : IServiceEndpoint
 
             var enumTrackerBases = trackerBases.ToList();
             foreach (var trackerBase in enumTrackerBases.ToList())
-                DriverService?.SetTrackerState(trackerBase.ComTracker());
+                if (IsEmulationEnabled)
+                    _00driverService?.SetTrackerState(trackerBase.ComTracker00());
+                else
+                    _driverService?.SetTrackerState(trackerBase.ComTracker());
 
             return Task.FromResult(wantReply ? enumTrackerBases.Select(x => (x, true)) : null);
         }
@@ -596,7 +602,10 @@ public class SteamVR : IServiceEndpoint
 
             var enumTrackerBases = trackerBases.ToList();
             foreach (var trackerBase in enumTrackerBases.ToList())
-                DriverService?.UpdateTracker(trackerBase.ComTracker());
+                if (IsEmulationEnabled)
+                    _00driverService?.UpdateTracker(trackerBase.ComTracker00());
+                else
+                    _driverService?.UpdateTracker(trackerBase.ComTracker());
 
             return Task.FromResult(wantReply ? enumTrackerBases.Select(x => (x, true)) : null);
         }
@@ -631,13 +640,16 @@ public class SteamVR : IServiceEndpoint
         switch (data)
         {
             case bool boolData:
-                DriverService?.UpdateInputBoolean((driver_00Amethyst.dTrackerType)trackerType, action.Guid, Convert.ToSByte(boolData));
+                if (IsEmulationEnabled)
+                    _00driverService?.UpdateInputBoolean((driver_00Amethyst.dTrackerType)trackerType, action.Guid, Convert.ToSByte(boolData));
                 break;
             case float scalarData:
-                DriverService?.UpdateInputScalar((driver_00Amethyst.dTrackerType)trackerType, action.Guid, scalarData);
+                if (IsEmulationEnabled)
+                    _00driverService?.UpdateInputScalar((driver_00Amethyst.dTrackerType)trackerType, action.Guid, scalarData);
                 break;
             case double scalarData:
-                DriverService?.UpdateInputScalar((driver_00Amethyst.dTrackerType)trackerType, action.Guid, (float)scalarData);
+                if (IsEmulationEnabled)
+                    _00driverService?.UpdateInputScalar((driver_00Amethyst.dTrackerType)trackerType, action.Guid, (float)scalarData);
                 break;
             default:
                 Host?.Log($"Data {data} with type {data.GetType()} was not processed because its type is not supported.");
@@ -1084,6 +1096,23 @@ public static class OvrExtensions
         };
     }
 
+    public static driver_00Amethyst.dTrackerBase ComTracker00(this TrackerBase tracker)
+    {
+        return new driver_00Amethyst.dTrackerBase
+        {
+            ConnectionState = Convert.ToSByte(tracker.ConnectionState),
+            TrackingState = Convert.ToSByte(tracker.TrackingState == TrackedJointState.StateTracked),
+            Serial = tracker.Serial,
+            Role = (driver_00Amethyst.dTrackerType)tracker.Role,
+            Position = tracker.Position.ComVector00(),
+            Orientation = tracker.Orientation.ComQuaternion00(),
+            Velocity = tracker.Velocity.ComVector00(),
+            Acceleration = tracker.Acceleration.ComVector00(),
+            AngularVelocity = tracker.AngularVelocity.ComVector00(),
+            AngularAcceleration = tracker.AngularAcceleration.ComVector00()
+        };
+    }
+
     public static driver_Amethyst.dVector3 ComVector(this Vector3 v)
     {
         return new driver_Amethyst.dVector3 { X = v.X, Y = v.Y, Z = v.Z };
@@ -1098,6 +1127,22 @@ public static class OvrExtensions
     public static driver_Amethyst.dQuaternion ComQuaternion(this Quaternion q)
     {
         return new driver_Amethyst.dQuaternion { X = q.X, Y = q.Y, Z = q.Z, W = q.W };
+    }
+
+    public static driver_00Amethyst.dVector3 ComVector00(this Vector3 v)
+    {
+        return new driver_00Amethyst.dVector3 { X = v.X, Y = v.Y, Z = v.Z };
+    }
+
+    public static driver_00Amethyst.dVector3Nullable ComVector00(this Vector3? v)
+    {
+        return new driver_00Amethyst.dVector3Nullable
+            { HasValue = Convert.ToSByte(v.HasValue), Value = v?.ComVector00() ?? new driver_00Amethyst.dVector3() };
+    }
+
+    public static driver_00Amethyst.dQuaternion ComQuaternion00(this Quaternion q)
+    {
+        return new driver_00Amethyst.dQuaternion { X = q.X, Y = q.Y, Z = q.Z, W = q.W };
     }
 
     public static Vector3 GetPosition(this HmdMatrix34_t mat)
