@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using Windows.ApplicationModel;
 using Windows.Management.Deployment;
 using Windows.Storage;
@@ -46,5 +47,23 @@ public static class StorageExtensions
         // Copy all the files & Replaces any files with the same name
         foreach (var newPath in source.GetFiles("*.*", SearchOption.AllDirectories))
             newPath.CopyTo(newPath.FullName.Replace(source.FullName, destination), true);
+    }
+}
+
+public class InfoBarData
+{
+    public string Title { get; set; }
+    public string Content { get; set; }
+    public string Button { get; set; }
+    public Action Click { get; set; }
+    public bool Closable { get; set; }
+    public bool IsOpen { get; set; }
+
+    public (string Title, string Content, string Button, Action Click, bool Closable)? AsPackedData =>
+        IsOpen ? (Title, Content, Button, Click, Closable) : null;
+
+    public void ClickAction(object sender, object args)
+    {
+        Click();
     }
 }

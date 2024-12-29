@@ -229,6 +229,22 @@
         {
             "id": "/InputActions/Code/Test",
             "translation": "The output from code testing will appear here..."
+        },
+        {
+            "id": "/ServerStatuses/-110/Title",
+            "translation": "The registered OpenVR driver does not support emulation."
+        },
+        {
+            "id": "/ServerStatuses/-111/Title",
+            "translation": "The registered OpenVR driver has device and input emulation enabled."
+        },
+        {
+            "id": "/ServerStatuses/-110/Content",
+            "translation": "Please re-register the driver entry from SteamVR service settings within Amethyst."
+        },
+        {
+            "id": "/ServerStatuses/-111/Content",
+            "translation": "Please re-register the driver entry from SteamVR service settings within Amethyst."
         }
     ]
 }

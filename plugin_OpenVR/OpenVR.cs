@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -47,6 +48,7 @@ public class SteamVR : IServiceEndpoint
     private uint _vrNotificationId;
     private ulong _vrOverlayHandle = OpenVR.k_ulOverlayHandleInvalid;
     private bool _isEmulationEnabledLast;
+    private int _serviceStatus;
 
     public SteamVR()
     {
@@ -180,7 +182,25 @@ public class SteamVR : IServiceEndpoint
 
     public object SettingsInterfaceRoot => InterfaceRoot;
 
-    public int ServiceStatus { get; private set; }
+    public int ServiceStatus
+    {
+        get => _serviceStatus;
+        private set
+        {
+            _serviceStatus = value;
+            Host.GetType().GetMethod("SetRelayInfoBarOverride")!.Invoke(Host, [
+                ServiceStatus is -110 or -111
+                    ? new InfoBarData
+                    {
+                        Title = Host?.RequestLocalizedString($"/ServerStatuses/{_serviceStatus}/Title"),
+                        Content = Host?.RequestLocalizedString($"/ServerStatuses/{_serviceStatus}/Content"),
+                        IsOpen = true,
+                        Closable = false
+                    }.AsPackedData
+                    : null
+            ]);
+        }
+    }
 
     [DefaultValue("Not Defined\nE_NOT_DEFINED\nStatus message not defined!")]
     public string ServiceStatusString => PluginLoaded
@@ -207,8 +227,8 @@ public class SteamVR : IServiceEndpoint
                 .Replace("{0}", ServiceStatus.ToString()),
 
             -10 => Host.RequestLocalizedString("/ServerStatuses/Exception")
-                .Replace("{0}", ServiceStatus.ToString()
-                    .Replace("{1}", ServerDriverException.Message)),
+                .Replace("{0}", ServiceStatus.ToString())
+                .Replace("{1}", ServerDriverException.Message),
 
             -2 => Host.RequestLocalizedString("/ServerStatuses/RPCChannelFailure")
                 .Replace("{0}", ServiceStatus.ToString()),
@@ -344,7 +364,7 @@ public class SteamVR : IServiceEndpoint
         VrInputStatic = VrInput;
         HostStatic = Host;
 
-        Settings ??= new SettingsPage { DataParent = this, Host = Host };
+        Settings = new SettingsPage { DataParent = this, Host = Host };
         InterfaceRoot = new Page
         {
             Content = Settings
@@ -480,7 +500,7 @@ public class SteamVR : IServiceEndpoint
         get
         {
             if (!Initialized || OpenVR.System is null) return (Vector3.Zero, Quaternion.Identity); // Sanity check
-            if (IsHeadsetEmulationEnabled) return null; // Sanity check don't inbreed calibration poses
+            // if (IsHeadsetEmulationEnabled) return null; // Sanity check don't inbreed calibration poses
 
             // Capture RAW HMD pose
             var devicePose = new TrackedDevicePose_t[1]; // HMD only
@@ -499,6 +519,37 @@ public class SteamVR : IServiceEndpoint
                     Quaternion.Inverse(VrPlayspaceOrientationQuaternion)),
                 Quaternion.Inverse(VrPlayspaceOrientationQuaternion) * raw.Orientation);
         }
+    }
+
+    public List<TrackerBase> GetTrackerPoses()
+    {
+        if (!Initialized || OpenVR.System is null) return null; // Sanity check
+
+        string GetDeviceName(uint index)
+        {
+            StringBuilder serialStringBuilder = new(1024);
+            var serialError = ETrackedPropertyError.TrackedProp_Success;
+            OpenVR.System.GetStringTrackedDeviceProperty(index, ETrackedDeviceProperty.Prop_SerialNumber_String,
+                serialStringBuilder, (uint)serialStringBuilder.Capacity, ref serialError);
+
+            return serialStringBuilder.ToString();
+        }
+
+        var devicePose = new TrackedDevicePose_t[OpenVR.k_unMaxTrackedDeviceCount];
+        OpenVR.System.GetDeviceToAbsoluteTrackingPose(
+            ETrackingUniverseOrigin.TrackingUniverseStanding, 0, devicePose);
+
+        // Get pos & rot
+        return devicePose.Select((x, i) => new TrackerBase
+        {
+            Serial = GetDeviceName((uint)i),
+            Position = Vector3.Transform(x
+                    .mDeviceToAbsoluteTracking.GetPosition() - VrPlayspaceTranslation,
+                Quaternion.Inverse(VrPlayspaceOrientationQuaternion)),
+
+            Orientation = Quaternion.Inverse(VrPlayspaceOrientationQuaternion) *
+                          x.mDeviceToAbsoluteTracking.GetOrientation()
+        }).ToList();
     }
 
     public TrackerBase GetTrackerPose(string contains, bool canBeFromAmethyst = true)
@@ -725,12 +776,14 @@ public class SteamVR : IServiceEndpoint
             Host?.Log(e.ToString(), LogSeverity.Error);
             ServerDriverException = e;
 
+            Host?.Log(Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst"));
+
             return IsEmulationEnabled switch
             {
-                true when OpenVrPaths.TryRead()?.external_drivers.Contains((await ApplicationData.Current.LocalFolder
-                    .CreateFolderAsync("Amethyst", CreationCollisionOption.OpenIfExists)).Path) ?? false => -110,
-                false when OpenVrPaths.TryRead()?.external_drivers.Contains((await ApplicationData.Current.LocalFolder
-                    .CreateFolderAsync("00Amethyst", CreationCollisionOption.OpenIfExists)).Path) ?? false => -111,
+                true when OpenVrPaths.TryRead()?.external_drivers.Contains(
+                    Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst")) ?? false => -110,
+                false when OpenVrPaths.TryRead()?.external_drivers.Contains(
+                    Path.Join(ApplicationData.Current.LocalFolder.Path, "00Amethyst")) ?? false => -111,
                 _ => -1
             };
         }
@@ -741,10 +794,10 @@ public class SteamVR : IServiceEndpoint
 
             return IsEmulationEnabled switch
             {
-                true when OpenVrPaths.TryRead()?.external_drivers.Contains((await ApplicationData.Current.LocalFolder
-                    .CreateFolderAsync("Amethyst", CreationCollisionOption.OpenIfExists)).Path) ?? false => -110,
-                false when OpenVrPaths.TryRead()?.external_drivers.Contains((await ApplicationData.Current.LocalFolder
-                    .CreateFolderAsync("00Amethyst", CreationCollisionOption.OpenIfExists)).Path) ?? false => -111,
+                true when OpenVrPaths.TryRead()?.external_drivers.Contains(
+                    Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst")) ?? false => -110,
+                false when OpenVrPaths.TryRead()?.external_drivers.Contains(
+                    Path.Join(ApplicationData.Current.LocalFolder.Path, "00Amethyst")) ?? false => -111,
                 _ => -1
             };
         }
@@ -804,10 +857,10 @@ public class SteamVR : IServiceEndpoint
 
                 return IsEmulationEnabled switch
                 {
-                    true when OpenVrPaths.TryRead()?.external_drivers.Contains((await ApplicationData.Current.LocalFolder
-                        .CreateFolderAsync("Amethyst", CreationCollisionOption.OpenIfExists)).Path) ?? false => -110,
-                    false when OpenVrPaths.TryRead()?.external_drivers.Contains((await ApplicationData.Current.LocalFolder
-                        .CreateFolderAsync("00Amethyst", CreationCollisionOption.OpenIfExists)).Path) ?? false => -111,
+                    true when OpenVrPaths.TryRead()?.external_drivers.Contains(
+                        Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst")) ?? false => -110,
+                    false when OpenVrPaths.TryRead()?.external_drivers.Contains(
+                        Path.Join(ApplicationData.Current.LocalFolder.Path, "00Amethyst")) ?? false => -111,
                     _ => -1
                 };
             }
