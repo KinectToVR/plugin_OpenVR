@@ -184,23 +184,27 @@ public class InputAction(string name = "", string type = "boolean", string requi
         var pHandle = Handle;
         var error = OpenVR.Input.GetActionHandle(Name, ref pHandle);
 
+        Host?.Log(error is EVRInputError.None
+            ? $"Registered {Name} as {pHandle}"
+            : $"Error registering {Name}: {error}");
+
         Handle = pHandle;
         return error;
     }
 
-    public bool UpdateState()
+    public bool UpdateState(bool log = false)
     {
         var result = Type switch
         {
-            "boolean" => GetDigitalState(),
-            "vector2" => GetAnalogState(),
+            "boolean" => GetDigitalState(log),
+            "vector2" => GetAnalogState(log),
             _ => false
         };
 
         return result || Requirement is "optional";
     }
 
-    private bool GetDigitalState()
+    private bool GetDigitalState(bool log = false)
     {
         if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
 
@@ -212,12 +216,14 @@ public class InputAction(string name = "", string type = "boolean", string requi
 
         DataDigital = pData;
 
-        if (error == EVRInputError.None) return DataDigital.bState;
+        if (pData.bChanged) Host?.Log($"{Name} -> {pData.bState}");
+
+        if (error == EVRInputError.None) return true;
         Host?.Log($"GetDigitalActionData call error: {error}", LogSeverity.Error);
         return false;
     }
 
-    private bool GetAnalogState()
+    private bool GetAnalogState(bool log = false)
     {
         if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
 
@@ -229,7 +235,10 @@ public class InputAction(string name = "", string type = "boolean", string requi
 
         DataAnalog = pData;
 
-        if (error == EVRInputError.None) return DataDigital.bState;
+        if (log && pData.deltaX != 0.0f || pData.deltaY != 0.0f || pData.deltaZ != 0.0f) 
+            Host?.Log($"{Name} -> <{pData.x}, {pData.y}, {pData.z}>");
+
+        if (error == EVRInputError.None) return true;
         Host?.Log($"GetAnalogActionData call error: {error}", LogSeverity.Error);
         return false;
     }
@@ -243,6 +252,8 @@ public class SteamEvrInput(IAmethystHost host, SteamVR parent)
     private IAmethystHost Host { get; } = host;
     public ActionsManifest RegisteredActions { get; set; } = new();
     private SteamVR Parent { get; } = parent;
+    public bool ActionsInitialized { get; set; }
+    public bool LogActionDataChanges { get; set; }
 
     public bool TrackerFreezeActionData => RegisteredActions["/actions/default/in/TrackerFreeze"]?.Data ?? false;
     public bool TrackerFlipToggleData => RegisteredActions["/actions/default/in/FlipToggle"]?.Data ?? false;
@@ -362,17 +373,19 @@ public class SteamEvrInput(IAmethystHost host, SteamVR parent)
         catch (Exception e)
         {
             Host.Log($"EVR Input Actions init error: {e.Message} at {e.StackTrace}");
-            return true;
+            return false;
         }
 
         // Return OK
         Host.Log("EVR Input Actions initialized OK");
+        ActionsInitialized = true;
         return true;
     }
 
     public bool UpdateActionStates()
     {
         if (!SteamVR.Initialized || OpenVR.Input is null) return false; // Sanity check
+        if (!ActionsInitialized) return true;
 
         /**********************************************/
         // Check if VR controllers are valid
@@ -402,7 +415,7 @@ public class SteamEvrInput(IAmethystHost host, SteamVR parent)
         // Here, update the actions and grab data-s
         /**********************************************/
 
-        return RegisteredActions.Actions.All(x => x.UpdateState());
+        return RegisteredActions.Actions.All(x => x.UpdateState(LogActionDataChanges));
     }
 
     public static FileInfo GetProgramLocation()

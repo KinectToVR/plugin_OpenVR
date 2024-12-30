@@ -1127,6 +1127,13 @@ public class SteamVR : IServiceEndpoint
         }
     }
 
+    public string ToggleActionLogging()
+    {
+        if (VrInput is null) return "VR Input was not initialized!";
+        VrInput.LogActionDataChanges = !VrInput.LogActionDataChanges;
+        return $"Action data changes logging {(VrInput.LogActionDataChanges ? "enabled" : "disabled")}";
+    }
+
     #endregion
 }
 
