@@ -46,7 +46,7 @@ public class VrHelper
             // ignored
         }
 
-        SteamVrSettingsPath = Path.Combine(SteamPath, "config", "steamvr.vrsettings");
+        SteamVrSettingsPath = Path.Combine(SteamPath ?? "C:/TEMP", "config", "steamvr.vrsettings");
         CopiedDriverPath = Path.Combine(SteamVrPath, "drivers", SteamVR.Instance?.DriverFolderName ?? "Amethyst");
 
         // Return the found-outs

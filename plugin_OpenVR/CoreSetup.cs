@@ -30,7 +30,7 @@ internal class SetupData : ICoreSetupData
 
 internal class DriverInstaller : IDependencyInstaller
 {
-	public IDependencyInstaller.ILocalizationHost Host { get; set; }
+    public IDependencyInstaller.ILocalizationHost Host { get; set; }
 
     public List<IDependency> ListDependencies()
     {
@@ -44,7 +44,10 @@ internal class DriverInstaller : IDependencyInstaller
         ];
     }
 
-    public List<IFix> ListFixes() => [];
+    public List<IFix> ListFixes()
+    {
+        return [];
+    }
 }
 
 internal class VrDriver : IDependency
@@ -107,58 +110,7 @@ internal class VrDriver : IDependency
 
         /* 1 */
 
-        // Create a placeholder for the driver path
-        var localAmethystDriverPath = "";
-
-        // Check whether Amethyst is installed as a package
-        if (!PackageUtils.IsAmethystPackaged)
-        {
-            // Optionally change to the other variant
-            if (!new DirectoryInfo(localAmethystDriverPath).Exists)
-            {
-                // Get plugin_OpenVR.dll parent path
-                var parentPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location);
-
-                // Search for driver manifests, try max 2 times
-                for (var i = 0; i < 2; i++)
-                {
-                    // Double that to get Amethyst exe path
-                    if (parentPath?.Parent != null) parentPath = parentPath.Parent;
-                    if (parentPath is null) goto p_search_loop_end;
-
-                    // Find all vr driver manifests there
-                    var allLocalDriverManifests = Directory.GetFiles(parentPath.ToString(),
-                        "driver.vrdrivermanifest", SearchOption.AllDirectories);
-
-                    // For each found manifest, check if there is an ame driver dll inside
-                    foreach (var localDriverManifest in allLocalDriverManifests)
-                        if (File.Exists(Path.Combine(Directory.GetParent(localDriverManifest)!.ToString(), "bin",
-                                "win64",
-                                "driver_Amethyst.dll")))
-                        {
-                            // We've found it! Now cache it and break free
-                            localAmethystDriverPath = Directory.GetParent(localDriverManifest)!.ToString();
-                            goto p_search_loop_end;
-                        }
-                    // Else redo once more & then check
-                }
-            }
-
-            // End of the searching loop
-            p_search_loop_end:
-
-            // If there's none (still), cry about it and abort
-            if (string.IsNullOrEmpty(localAmethystDriverPath) || !new DirectoryInfo(localAmethystDriverPath).Exists)
-            {
-                progress.Report(new InstallationProgress
-                {
-                    IsIndeterminate = true,
-                    StageTitle = Host?.RequestLocalizedString("/CrashHandler/ReRegister/DriverNotFound")!
-                });
-
-                return false; // Hide and exit the handler
-            }
-        }
+        await PathsHandler.Setup();
 
         /* 2 */
 
@@ -184,29 +136,26 @@ internal class VrDriver : IDependency
         /* 1.1 Copy packaged Amethyst drivers */
 
         // Check whether Amethyst is installed as a package
-        if (PackageUtils.IsAmethystPackaged)
+        // Copy all driver files to Amethyst's local data folder
+        new DirectoryInfo(Path.Join(Directory.GetParent(
+                Assembly.GetExecutingAssembly().Location)!.FullName, "Driver", "Amethyst"))
+            .CopyToFolder((await PathsHandler.LocalFolder.CreateFolderAsync(
+                "Amethyst", CreationCollisionOption.OpenIfExists)).Path);
+
+        // Assume it's done now and get the path
+        var localAmethystDriverPath = Path.Join(PathsHandler.LocalFolder.Path, "Amethyst");
+
+        // If there's none (still), cry about it and abort
+        if (string.IsNullOrEmpty(localAmethystDriverPath) || !Directory.Exists(localAmethystDriverPath))
         {
-            // Copy all driver files to Amethyst's local data folder
-            new DirectoryInfo(Path.Join(Directory.GetParent(
-                    Assembly.GetExecutingAssembly().Location)!.FullName, "Driver", "Amethyst"))
-                .CopyToFolder((await ApplicationData.Current.LocalFolder.CreateFolderAsync(
-                    "Amethyst", CreationCollisionOption.OpenIfExists)).Path);
-
-            // Assume it's done now and get the path
-            localAmethystDriverPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), "Amethyst");
-
-            // If there's none (still), cry about it and abort
-            if (string.IsNullOrEmpty(localAmethystDriverPath) || !Directory.Exists(localAmethystDriverPath))
+            Host?.Log($"Copied driver not present at expectant path of: {localAmethystDriverPath}");
+            progress.Report(new InstallationProgress
             {
-                Host?.Log($"Copied driver not present at expectant path of: {localAmethystDriverPath}");
-                progress.Report(new InstallationProgress
-                {
-                    IsIndeterminate = true,
-                    StageTitle = Host?.RequestLocalizedString("/CrashHandler/ReRegister/DriverNotFound")!
-                });
+                IsIndeterminate = true,
+                StageTitle = Host?.RequestLocalizedString("/CrashHandler/ReRegister/DriverNotFound")!
+            });
 
-                return false; // Hide and exit the handler
-            }
+            return false; // Hide and exit the handler
         }
 
         /* 2.5 */
@@ -266,7 +215,8 @@ internal class VrDriver : IDependency
                      .Where(externalDriver => externalDriver.Contains("Amethyst")))
         {
             // Don't un-register the already-existent one
-            if (externalDriver == localAmethystDriverPath)
+            if (externalDriver == localAmethystDriverPath ||
+                externalDriver == localAmethystDriverPath.ShortPath())
             {
                 isLocalAmethystDriverRegistered = true;
                 continue; // Don't report it
@@ -289,7 +239,8 @@ internal class VrDriver : IDependency
                 if (amethystDriverPathsList.Any())
                 {
                     foreach (var amethystDriverPath in amethystDriverPathsList.Where(amethystDriverPath =>
-                                 amethystDriverPath != localAmethystDriverPath))
+                                 amethystDriverPath != localAmethystDriverPath &&
+                                 amethystDriverPath != localAmethystDriverPath.ShortPath()))
                         openVrPaths.external_drivers.Remove(amethystDriverPath); // Un-register
 
                     // Save it
@@ -315,12 +266,13 @@ internal class VrDriver : IDependency
             try // Try-Catch it
             {
                 // Register the local Amethyst Driver via OpenVRPaths
-                openVrPaths.external_drivers.Add(localAmethystDriverPath);
+                openVrPaths.external_drivers.Add(localAmethystDriverPath.ShortPath());
                 openVrPaths.Write(); // Save it
 
                 // If failed, cry about it and abort
                 var openVrPathsCheck = OpenVrPaths.Read();
-                if (!openVrPathsCheck.external_drivers.Contains(localAmethystDriverPath))
+                if (!openVrPathsCheck.external_drivers.Contains(localAmethystDriverPath) &&
+                    !openVrPathsCheck.external_drivers.Contains(localAmethystDriverPath.ShortPath()))
                 {
                     progress.Report(new InstallationProgress
                     {
@@ -356,8 +308,8 @@ internal class VrDriver : IDependency
             steamVrSettings.Add("driver_Amethyst",
                 new JsonObject
                 {
-                    new("enable", JsonValue.CreateBooleanValue(true)),
-                    new("blocked_by_safe_mode", JsonValue.CreateBooleanValue(false))
+                    new KeyValuePair<string, IJsonValue>("enable", JsonValue.CreateBooleanValue(true)),
+                    new KeyValuePair<string, IJsonValue>("blocked_by_safe_mode", JsonValue.CreateBooleanValue(false))
                 });
 
             await File.WriteAllTextAsync(resultPaths.Path.VrSettingsPath, steamVrSettings.ToString(),

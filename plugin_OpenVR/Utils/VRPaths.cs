@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace plugin_OpenVR.Utils;
 
@@ -49,4 +51,32 @@ internal class OpenVrPaths
     public List<string> runtime;
     public int version;
 #pragma warning restore 0649
+}
+
+public static class PathUtils
+{
+    public static string GetShortName(string sLongFileName)
+    {
+        var buffer = new StringBuilder(259);
+        if (GetShortPathName(sLongFileName, buffer, buffer.Capacity) == 0)
+            throw new System.ComponentModel.Win32Exception();
+
+        return buffer.ToString();
+    }
+
+    [DllImport("kernel32", EntryPoint = "GetShortPathName", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern int GetShortPathName(string longPath, StringBuilder shortPath, int bufSize);
+
+    public static string ShortPath(this string path)
+    {
+        try
+        {
+            var result = GetShortName(path);
+            return string.IsNullOrEmpty(result) ? path : result;
+        }
+        catch (Exception)
+        {
+            return path;
+        }
+    }
 }

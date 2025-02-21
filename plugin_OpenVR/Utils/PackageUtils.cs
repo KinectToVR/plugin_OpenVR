@@ -2,14 +2,28 @@
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
+using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.Management.Deployment;
 using Windows.Storage;
 
 namespace plugin_OpenVR.Utils;
 
-public static class PackageUtils
+public static class PathsHandler
 {
+    public static async Task Setup()
+    {
+        if (IsAmethystPackaged) return;
+
+        var root = await StorageFolder.GetFolderFromPathAsync(
+            Path.Join(ProgramLocation.DirectoryName!));
+
+        LocalFolderUnpackaged = await (await root
+                .CreateFolderAsync("AppData", CreationCollisionOption.OpenIfExists))
+            .CreateFolderAsync("LocalState", CreationCollisionOption.OpenIfExists);
+    }
+
     public static bool IsAmethystPackaged
     {
         get
@@ -25,15 +39,11 @@ public static class PackageUtils
         }
     }
 
-    public static string GetAmethystAppDataPath()
-    {
-        return ApplicationData.Current.LocalFolder.Path;
-    }
+    public static FileInfo ProgramLocation => new(Assembly.GetExecutingAssembly().Location);
 
-    public static string GetAmethystTempPath()
-    {
-        return ApplicationData.Current.TemporaryFolder.Path;
-    }
+    public static StorageFolder LocalFolder => IsAmethystPackaged ? ApplicationData.Current.LocalFolder : LocalFolderUnpackaged;
+
+    public static StorageFolder LocalFolderUnpackaged { get; set; } // Assigned on Setup()
 }
 
 public static class StorageExtensions

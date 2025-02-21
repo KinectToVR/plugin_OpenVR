@@ -252,38 +252,34 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         try
         {
             // Prepare the manifest by copying it to a shared directory
-            // Check whether Amethyst is installed as a package
-            if (PackageUtils.IsAmethystPackaged)
+            // Copy all driver files to Amethyst's local data folder
+            Directory.CreateDirectory(Path.Join(Host.PathHelper.LocalFolder.FullName, DataParent.DriverFolderName));
+
+            // Copy the manifest
+            new FileInfo(Path.Join(
+                    Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.FullName, "Amethyst.vrmanifest"))
+                .CopyTo(Path.Join(Host.PathHelper.LocalFolder.FullName, DataParent.DriverFolderName, "Amethyst.vrmanifest"), true);
+
+            // Copy the icon
+            var icon = new FileInfo(Path.Join(
+                Directory.GetParent(Environment.ProcessPath!)!.FullName, "Assets", "ktvr.png"));
+
+            if (icon.Exists)
+                icon.CopyTo(Path.Join(Host.PathHelper.LocalFolder.FullName, DataParent.DriverFolderName, "ktvr.png"), true);
+
+            // Assume it's done now and get the path
+            var copiedManifestPath =
+                Path.Join(Host.PathHelper.LocalFolder.FullName, DataParent.DriverFolderName, "Amethyst.vrmanifest");
+
+            // If there's none (still), cry about it and abort
+            if (string.IsNullOrEmpty(copiedManifestPath) || !File.Exists(copiedManifestPath))
             {
-                // Copy all driver files to Amethyst's local data folder
-                Directory.CreateDirectory(Path.Join(ApplicationData.Current.LocalFolder.Path, DataParent.DriverFolderName));
+                // Hide the "working" progress bar
+                ReRegisterButtonBar.Opacity = 0.0;
 
-                // Copy the manifest
-                new FileInfo(Path.Join(
-                        Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.FullName, "Amethyst.vrmanifest"))
-                    .CopyTo(Path.Join(ApplicationData.Current.LocalFolder.Path, DataParent.DriverFolderName, "Amethyst.vrmanifest"), true);
-
-                // Copy the icon
-                var icon = new FileInfo(Path.Join(
-                    Directory.GetParent(Environment.ProcessPath!)!.FullName, "Assets", "ktvr.png"));
-
-                if (icon.Exists)
-                    icon.CopyTo(Path.Join(ApplicationData.Current.LocalFolder.Path, DataParent.DriverFolderName, "ktvr.png"), true);
-
-                // Assume it's done now and get the path
-                var copiedManifestPath =
-                    Path.Join(ApplicationData.Current.LocalFolder.Path, DataParent.DriverFolderName, "Amethyst.vrmanifest");
-
-                // If there's none (still), cry about it and abort
-                if (string.IsNullOrEmpty(copiedManifestPath) || !File.Exists(copiedManifestPath))
-                {
-                    // Hide the "working" progress bar
-                    ReRegisterButtonBar.Opacity = 0.0;
-
-                    Host?.Log($"Copied driver not present at expectant path of: {copiedManifestPath}");
-                    Host?.Log($"Amethyst vr manifest ({copiedManifestPath}) not found!", LogSeverity.Warning);
-                    return -2;
-                }
+                Host?.Log($"Copied driver not present at expectant path of: {copiedManifestPath}");
+                Host?.Log($"Amethyst vr manifest ({copiedManifestPath}) not found!", LogSeverity.Warning);
+                return -2;
             }
 
             if (OpenVR.Applications.IsApplicationInstalled("K2VR.Amethyst"))
@@ -296,10 +292,8 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
             }
 
             // Compose the manifest path depending on where our plugin is
-            var manifestPath = PackageUtils.IsAmethystPackaged
-                ? Path.Join(ApplicationData.Current.LocalFolder.Path, DataParent.DriverFolderName, "Amethyst.vrmanifest")
-                : Path.Join(Directory.GetParent(
-                    Assembly.GetAssembly(GetType())!.Location)?.FullName, "Amethyst.vrmanifest");
+            var manifestPath = Path.Join(Host.PathHelper.LocalFolder.FullName,
+                DataParent.DriverFolderName, "Amethyst.vrmanifest");
 
             if (File.Exists(manifestPath))
             {
@@ -400,57 +394,7 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
 
         /* 1 */
 
-        // Create a placeholder for the driver path
-        var localAmethystDriverPath = "";
-
-        // Check whether Amethyst is installed as a package
-        if (!PackageUtils.IsAmethystPackaged)
-        {
-            // Optionally change to the other variant
-            if (!new DirectoryInfo(localAmethystDriverPath).Exists)
-            {
-                // Get plugin_OpenVR.dll parent path
-                var parentPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location);
-
-                // Search for driver manifests, try max 2 times
-                for (var i = 0; i < 2; i++)
-                {
-                    // Double that to get Amethyst exe path
-                    if (parentPath?.Parent != null) parentPath = parentPath.Parent;
-                    if (parentPath is null) goto p_search_loop_end;
-
-                    // Find all vr driver manifests there
-                    var allLocalDriverManifests = Directory.GetFiles(parentPath.ToString(),
-                        "driver.vrdrivermanifest", SearchOption.AllDirectories);
-
-                    // For each found manifest, check if there is an ame driver dll inside
-                    foreach (var localDriverManifest in allLocalDriverManifests)
-                        if (File.Exists(Path.Combine(Directory.GetParent(localDriverManifest).ToString(), "bin",
-                                "win64",
-                                "driver_Amethyst.dll")))
-                        {
-                            // We've found it! Now cache it and break free
-                            localAmethystDriverPath = Directory.GetParent(localDriverManifest).ToString();
-                            goto p_search_loop_end;
-                        }
-                    // Else redo once more & then check
-                }
-            }
-
-            // End of the searching loop
-            p_search_loop_end:
-
-            // If there's none (still), cry about it and abort
-            if (string.IsNullOrEmpty(localAmethystDriverPath) || !new DirectoryInfo(localAmethystDriverPath).Exists)
-            {
-                // Hide the "working" progress bar
-                ReRegisterButtonBar.Opacity = 0.0;
-
-                await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
-                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/DriverNotFound"), "", "");
-                return; // Hide and exit the handler
-            }
-        }
+        // Not required anymore
 
         /* 2 */
 
@@ -490,29 +434,25 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
 
         /* 1.1 Copy packaged Amethyst drivers */
 
-        // Check whether Amethyst is installed as a package
-        if (PackageUtils.IsAmethystPackaged)
+        // Copy all driver files to Amethyst's local data folder
+        new DirectoryInfo(Path.Join(Directory.GetParent(
+                Assembly.GetExecutingAssembly().Location)!.FullName, "Driver", DataParent.DriverFolderName))
+            .CopyToFolder((await (await StorageFolder.GetFolderFromPathAsync(Host!.PathHelper.LocalFolder.FullName))
+                .CreateFolderAsync(DataParent.DriverFolderName, CreationCollisionOption.OpenIfExists)).Path);
+
+        // Assume it's done now and get the path
+        var localAmethystDriverPath = Path.Join(Host.PathHelper.LocalFolder.FullName, DataParent.DriverFolderName);
+
+        // If there's none (still), cry about it and abort
+        if (string.IsNullOrEmpty(localAmethystDriverPath) || !Directory.Exists(localAmethystDriverPath))
         {
-            // Copy all driver files to Amethyst's local data folder
-            new DirectoryInfo(Path.Join(Directory.GetParent(
-                    Assembly.GetExecutingAssembly().Location)!.FullName, "Driver", DataParent.DriverFolderName))
-                .CopyToFolder((await ApplicationData.Current.LocalFolder.CreateFolderAsync(
-                    DataParent.DriverFolderName, CreationCollisionOption.OpenIfExists)).Path);
+            // Hide the "working" progress bar
+            ReRegisterButtonBar.Opacity = 0.0;
 
-            // Assume it's done now and get the path
-            localAmethystDriverPath = Path.Join(PackageUtils.GetAmethystAppDataPath(), DataParent.DriverFolderName);
-
-            // If there's none (still), cry about it and abort
-            if (string.IsNullOrEmpty(localAmethystDriverPath) || !Directory.Exists(localAmethystDriverPath))
-            {
-                // Hide the "working" progress bar
-                ReRegisterButtonBar.Opacity = 0.0;
-
-                Host?.Log($"Copied driver not present at expectant path of: {localAmethystDriverPath}");
-                await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
-                    Host?.RequestLocalizedString("/CrashHandler/ReRegister/DriverNotFound"), "", "");
-                return; // Hide and exit the handler
-            }
+            Host?.Log($"Copied driver not present at expectant path of: {localAmethystDriverPath}");
+            await ConfirmationFlyout.HandleButtonConfirmationFlyout(ReRegisterButton, Host,
+                Host?.RequestLocalizedString("/CrashHandler/ReRegister/DriverNotFound"), "", "");
+            return; // Hide and exit the handler
         }
 
         /* 2.5 */
@@ -578,13 +518,14 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
                      externalDriver.Contains("Amethyst")))
         {
             // Don't un-register the already-existent one
-            if (externalDriver == localAmethystDriverPath)
+            if (externalDriver == localAmethystDriverPath ||
+                externalDriver == localAmethystDriverPath.ShortPath())
             {
                 isLocalAmethystDriverRegistered = true;
                 continue; // Don't report it
             }
 
-            isAmethystDriverPresent = !externalDriver.StartsWith(ApplicationData.Current.LocalFolder.Path);
+            isAmethystDriverPresent = !externalDriver.StartsWith(Host.PathHelper.LocalFolder.FullName);
             amethystDriverPathsList.Add(externalDriver);
         }
 
@@ -607,7 +548,8 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
                 if (amethystDriverPathsList.Any())
                 {
                     foreach (var amethystDriverPath in amethystDriverPathsList.Where(amethystDriverPath =>
-                                 amethystDriverPath != localAmethystDriverPath))
+                                 amethystDriverPath != localAmethystDriverPath &&
+                                 amethystDriverPath != localAmethystDriverPath.ShortPath()))
                         openVrPaths.external_drivers.Remove(amethystDriverPath); // Un-register
 
                     // Save it
@@ -633,12 +575,13 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
             try // Try-Catch it
             {
                 // Register the local Amethyst Driver via OpenVRPaths
-                openVrPaths.external_drivers.Add(localAmethystDriverPath);
+                openVrPaths.external_drivers.Add(localAmethystDriverPath.ShortPath());
                 openVrPaths.Write(); // Save it
 
                 // If failed, cry about it and abort
                 var openVrPathsCheck = OpenVrPaths.Read();
-                if (!openVrPathsCheck.external_drivers.Contains(localAmethystDriverPath))
+                if (!openVrPathsCheck.external_drivers.Contains(localAmethystDriverPath) &&
+                    !openVrPathsCheck.external_drivers.Contains(localAmethystDriverPath.ShortPath()))
                 {
                     // Hide the "working" progress bar
                     ReRegisterButtonBar.Opacity = 0.0;

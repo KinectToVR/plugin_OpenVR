@@ -18,7 +18,8 @@ using Valve.VR;
 using Vanara.PInvoke;
 using driver_Amethyst = com.driver_Amethyst;
 using driver_00Amethyst = com.driver_00Amethyst;
-using Windows.Storage;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
 
@@ -173,6 +174,8 @@ public class SteamVR : IServiceEndpoint
     public bool IsHeadsetEmulationEnabled =>
         Host is not null && Host.IsTrackerEnabled(TrackerType.TrackerHead);
 
+    public bool? WasEmulationEnabledOk { get; set; }
+
     public bool IsEmulationEnabled =>
         IsControllerEmulationEnabled || IsHeadsetEmulationEnabled;
 
@@ -182,23 +185,48 @@ public class SteamVR : IServiceEndpoint
 
     public object SettingsInterfaceRoot => InterfaceRoot;
 
+    public int? ServiceStatusSoftLock { get; set; }
+
+    public bool IsDriverInPaths => OpenVrPaths.TryRead()?.external_drivers.Any(x =>
+        x == Path.Join(Host.PathHelper.LocalFolder.FullName, "Amethyst") ||
+        x == Path.Join(Host.PathHelper.LocalFolder.FullName, "Amethyst").ShortPath()) ?? false;
+
+    public bool IsEmulatedDriverInPaths => OpenVrPaths.TryRead()?.external_drivers.Any(x =>
+        x == Path.Join(Host.PathHelper.LocalFolder.FullName, "00Amethyst") ||
+        x == Path.Join(Host.PathHelper.LocalFolder.FullName, "00Amethyst").ShortPath()) ?? false;
+
     public int ServiceStatus
     {
-        get => _serviceStatus;
+        get => ServiceStatusSoftLock ?? _serviceStatus;
         private set
         {
+            if (value is -110 or -111)
+            {
+                ServiceStatusSoftLock = value;
+                SetupRelayInfoBarOverride();
+                return; // Don't do anything else
+            }
+
             _serviceStatus = value;
-            Host.GetType().GetMethod("SetRelayInfoBarOverride")!.Invoke(Host, [
-                ServiceStatus is -110 or -111
-                    ? new InfoBarData
-                    {
-                        Title = Host?.RequestLocalizedString($"/ServerStatuses/{_serviceStatus}/Title"),
-                        Content = Host?.RequestLocalizedString($"/ServerStatuses/{_serviceStatus}/Content"),
-                        IsOpen = true,
-                        Closable = false
-                    }.AsPackedData
-                    : null
-            ]);
+            ServiceStatusSoftLock = null;
+            SetupRelayInfoBarOverride();
+
+            return;
+
+            void SetupRelayInfoBarOverride()
+            {
+                Host.GetType().GetMethod("SetRelayInfoBarOverride")!.Invoke(Host, [
+                    ServiceStatus is -110 or -111
+                        ? new InfoBarData
+                        {
+                            Title = Host?.RequestLocalizedString($"/ServerStatuses/{ServiceStatus}/Title"),
+                            Content = Host?.RequestLocalizedString($"/ServerStatuses/{ServiceStatus}/Content"),
+                            IsOpen = true,
+                            Closable = false
+                        }.AsPackedData
+                        : null
+                ]);
+            }
         }
     }
 
@@ -429,9 +457,14 @@ public class SteamVR : IServiceEndpoint
                 Host?.Log("Emulation config has changed!");
                 ServiceStatus = IsEmulationEnabled switch
                 {
-                    true => -110,
-                    false => -111
+                    true when IsDriverInPaths => -110,
+                    false when IsEmulatedDriverInPaths => -111,
+                    true when IsEmulatedDriverInPaths => _serviceStatus, // Remove soft-lock if we went back
+                    false when IsDriverInPaths => _serviceStatus, // Remove soft-lock if we went back
+                    _ => IsEmulationEnabled ? -110 : -111
                 };
+
+                Host?.RefreshStatusInterface();
             }
 
             _isEmulationEnabledLast = IsEmulationEnabled;
@@ -515,8 +548,10 @@ public class SteamVR : IServiceEndpoint
                 (devicePose[0].mDeviceToAbsoluteTracking.GetPosition(),
                     devicePose[0].mDeviceToAbsoluteTracking.GetOrientation());
 
-            return (Vector3.Transform(raw.Position - VrPlayspaceTranslation,
-                    Quaternion.Inverse(VrPlayspaceOrientationQuaternion)),
+            return (IsHeadsetEmulationEnabled
+                    ? Vector3.Zero // Return 0,0,0 if emulating a tracked headset
+                    : Vector3.Transform(raw.Position - VrPlayspaceTranslation,
+                        Quaternion.Inverse(VrPlayspaceOrientationQuaternion)),
                 Quaternion.Inverse(VrPlayspaceOrientationQuaternion) * raw.Orientation);
         }
     }
@@ -776,14 +811,12 @@ public class SteamVR : IServiceEndpoint
             Host?.Log(e.ToString(), LogSeverity.Error);
             ServerDriverException = e;
 
-            Host?.Log(Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst"));
+            Host?.Log(Path.Join(Host.PathHelper.LocalFolder.FullName, "Amethyst"));
 
             return IsEmulationEnabled switch
             {
-                true when OpenVrPaths.TryRead()?.external_drivers.Contains(
-                    Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst")) ?? false => -110,
-                false when OpenVrPaths.TryRead()?.external_drivers.Contains(
-                    Path.Join(ApplicationData.Current.LocalFolder.Path, "00Amethyst")) ?? false => -111,
+                true when IsDriverInPaths => -110,
+                false when IsEmulatedDriverInPaths => -111,
                 _ => -1
             };
         }
@@ -794,10 +827,8 @@ public class SteamVR : IServiceEndpoint
 
             return IsEmulationEnabled switch
             {
-                true when OpenVrPaths.TryRead()?.external_drivers.Contains(
-                    Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst")) ?? false => -110,
-                false when OpenVrPaths.TryRead()?.external_drivers.Contains(
-                    Path.Join(ApplicationData.Current.LocalFolder.Path, "00Amethyst")) ?? false => -111,
+                true when IsDriverInPaths => -110,
+                false when IsEmulatedDriverInPaths => -111,
                 _ => -1
             };
         }
@@ -857,10 +888,8 @@ public class SteamVR : IServiceEndpoint
 
                 return IsEmulationEnabled switch
                 {
-                    true when OpenVrPaths.TryRead()?.external_drivers.Contains(
-                        Path.Join(ApplicationData.Current.LocalFolder.Path, "Amethyst")) ?? false => -110,
-                    false when OpenVrPaths.TryRead()?.external_drivers.Contains(
-                        Path.Join(ApplicationData.Current.LocalFolder.Path, "00Amethyst")) ?? false => -111,
+                    true when IsDriverInPaths => -110,
+                    false when IsEmulatedDriverInPaths => -111,
                     _ => -1
                 };
             }
@@ -874,7 +903,7 @@ public class SteamVR : IServiceEndpoint
         catch (Exception e)
         {
             Host.Log("Server status check failed! " +
-                     $"Exception: {e.Message}", LogSeverity.Warning);
+                     $"Exception: {e.Message}\n{e.StackTrace}", LogSeverity.Warning);
 
             return -10;
         }
@@ -1132,6 +1161,66 @@ public class SteamVR : IServiceEndpoint
         if (VrInput is null) return "VR Input was not initialized!";
         VrInput.LogActionDataChanges = !VrInput.LogActionDataChanges;
         return $"Action data changes logging {(VrInput.LogActionDataChanges ? "enabled" : "disabled")}";
+    }
+
+    public bool SetupNullDriver(bool enableDriver, bool enableViewport = false)
+    {
+        // Play a sound
+        Host?.PlayAppSound(SoundType.Invoke);
+
+        VrHelper helper = new();
+        var resultPaths = helper.UpdateSteamPaths();
+
+        // Check if SteamVR was found
+        if (!resultPaths.Exists.SteamExists ||
+            !resultPaths.Exists.VrSettingsExist)
+        {
+            Host?.Log("Steam not found");
+            return false;
+        }
+
+        try // Try-Catch it
+        {
+            var settings = JObject.Parse(
+                File.ReadAllText(resultPaths.Path.VrSettingsPath));
+
+            settings["steamvr"] ??= new JObject();
+            settings["steamvr"]["activateMultipleDrivers"] = true;
+
+            if (enableDriver)
+            {
+                settings["steamvr"]["forcedDriver"] = "null";
+                settings["driver_null"] = JObject.FromObject(new
+                {
+                    displayFrequency = 60,
+                    enable = true,
+                    id = "Null Driver",
+                    renderHeight = 0,
+                    renderWidth = 0,
+                    secondsFromVsyncToPhotons = 0.10000000149011612,
+                    serialNumber = "Null 4711",
+                    windowHeight = enableViewport ? 1080 : 0,
+                    windowWidth = enableViewport ? 1920 : 0,
+                    windowX = 0,
+                    windowY = 0
+                });
+            }
+            else
+            {
+                settings["steamvr"]["forcedDriver"]?.Remove();
+                settings["driver_null"]?.Remove();
+            }
+
+            File.WriteAllText(resultPaths.Path.VrSettingsPath,
+                settings.ToString(Formatting.Indented));
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Host?.Log(ex);
+            return false;
+        }
     }
 
     #endregion
