@@ -40,6 +40,11 @@ internal class DriverInstaller : IDependencyInstaller
             {
                 Host = Host,
                 Name = Host?.RequestLocalizedString("/Dependencies/Driver") ?? "OpenVR Driver"
+            },
+            new NullDriver
+            {
+                Host = Host,
+                Name = Host?.RequestLocalizedString("/Dependencies/Null") ?? "Null Driver"
             }
         ];
     }
@@ -110,7 +115,15 @@ internal class VrDriver : IDependency
 
         /* 1 */
 
-        await PathsHandler.Setup();
+        try
+        {
+            await PathsHandler.Setup();
+            SteamVR.Instance?.Shutdown();
+        }
+        catch (Exception)
+        {
+            // Ignored
+        }
 
         /* 2 */
 
@@ -318,6 +331,131 @@ internal class VrDriver : IDependency
         catch (Exception)
         {
             // Not critical
+        }
+
+        // Winning it!
+        return true;
+    }
+}
+
+internal class NullDriver : IDependency
+{
+    public IDependencyInstaller.ILocalizationHost Host { get; set; }
+
+    public string Name { get; set; }
+    public bool IsMandatory => false;
+    public bool IsInstalled => false;
+    public string InstallerEula => string.Empty;
+
+    public async Task<bool> Install(IProgress<InstallationProgress> progress, CancellationToken cancellationToken)
+    {
+        // Amethyst will handle this exception for us anyway
+        cancellationToken.ThrowIfCancellationRequested();
+
+        VrHelper helper = new();
+        var resultPaths = helper.UpdateSteamPaths();
+
+        try // Try-Catch it
+        {
+            // Check if SteamVR was found
+            if (!resultPaths.Exists.SteamExists)
+            {
+                Directory.CreateDirectory(Directory.GetParent(OpenVrPaths.Path)!.FullName);
+                File.Create(OpenVrPaths.Path);
+            }
+        }
+        catch (Exception)
+        {
+            progress.Report(new InstallationProgress
+            {
+                IsIndeterminate = true,
+                StageTitle = Host?.RequestLocalizedString("/CrashHandler/ReRegister/OpenVRPathsError")!
+            });
+            return false;
+        }
+
+        /* 1 */
+
+        try
+        {
+            await PathsHandler.Setup();
+            SteamVR.Instance?.Shutdown();
+        }
+        catch (Exception)
+        {
+            // Ignored
+        }
+
+        /* 2 */
+
+        // Force exit (kill) SteamVR
+        if (Process.GetProcesses().FirstOrDefault(proc => proc.ProcessName is "vrserver" or "vrmonitor") != null)
+        {
+            // Check for privilege mismatches
+            if (VrHelper.IsOpenVrElevated() && !VrHelper.IsCurrentProcessElevated())
+            {
+                progress.Report(new InstallationProgress
+                {
+                    IsIndeterminate = true,
+                    StageTitle = Host?.RequestLocalizedString("/CrashHandler/ReRegister/Elevation")!
+                });
+
+                return false; // Hide and exit the handler
+            }
+
+            // Finally kill
+            await Task.Factory.StartNew(helper.CloseSteamVr, cancellationToken);
+        }
+
+        /* 3 */
+
+        // Try-Catch it
+        try
+        {
+            // Read the vr settings
+            var steamVrSettings =
+                JsonObject.Parse(await File.ReadAllTextAsync(resultPaths.Path.VrSettingsPath, cancellationToken));
+
+            // Enable & unblock the Null Driver
+            steamVrSettings.Remove("driver_null");
+            steamVrSettings.Add("driver_null",
+                new JsonObject
+                {
+                    new KeyValuePair<string, IJsonValue>("displayFrequency", JsonValue.CreateNumberValue(60)),
+                    new KeyValuePair<string, IJsonValue>("enable", JsonValue.CreateBooleanValue(true)),
+                    new KeyValuePair<string, IJsonValue>("id", JsonValue.CreateStringValue("Null Driver")),
+                    new KeyValuePair<string, IJsonValue>("renderHeight", JsonValue.CreateNumberValue(0)),
+                    new KeyValuePair<string, IJsonValue>("renderWidth", JsonValue.CreateNumberValue(0)),
+                    new KeyValuePair<string, IJsonValue>("secondsFromVsyncToPhotons", JsonValue.CreateNumberValue(0.10000000149011612)),
+                    new KeyValuePair<string, IJsonValue>("serialNumber", JsonValue.CreateStringValue("Null 4711")),
+                    new KeyValuePair<string, IJsonValue>("windowHeight", JsonValue.CreateNumberValue(0)),
+                    new KeyValuePair<string, IJsonValue>("windowWidth", JsonValue.CreateNumberValue(0)),
+                    new KeyValuePair<string, IJsonValue>("windowX", JsonValue.CreateNumberValue(0)),
+                    new KeyValuePair<string, IJsonValue>("windowY", JsonValue.CreateNumberValue(0))
+                });
+
+            steamVrSettings.Remove("steamvr");
+            steamVrSettings.Add("steamvr",
+                new JsonObject
+                {
+                    new KeyValuePair<string, IJsonValue>("activateMultipleDrivers", JsonValue.CreateBooleanValue(true)),
+                    new KeyValuePair<string, IJsonValue>("enableHomeApp", JsonValue.CreateBooleanValue(false)),
+                    new KeyValuePair<string, IJsonValue>("forcedDriver", JsonValue.CreateStringValue("null")),
+                    new KeyValuePair<string, IJsonValue>("mirrorViewGeometry", JsonValue.CreateStringValue("0 0 960 540"))
+                });
+
+            await File.WriteAllTextAsync(resultPaths.Path.VrSettingsPath, steamVrSettings.ToString(),
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            progress.Report(new InstallationProgress
+            {
+                IsIndeterminate = true,
+                StageTitle = ex.Message
+            });
+
+            return false; // Hide and exit the handler
         }
 
         // Winning it!

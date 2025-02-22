@@ -191,6 +191,10 @@
             "translation": "OpenVR Driver"
         },
         {
+	        "id": "/Dependencies/Null",
+	        "translation": "Null Driver"
+        },
+        {
             "id": "/InputActions/Buttons/View",
             "translation": "Manage custom input actions"
         },
