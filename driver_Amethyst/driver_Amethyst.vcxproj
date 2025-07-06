@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1\build\Microsoft.Windows.SDK.BuildTools.props" Condition="Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1\build\Microsoft.Windows.SDK.BuildTools.props')" />
-  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.props')" />
+  <Import Project="..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.4188\build\Microsoft.Windows.SDK.BuildTools.props" Condition="Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.4188\build\Microsoft.Windows.SDK.BuildTools.props')" />
+  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.props')" />
   <Import Project="..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.props" Condition="Exists('..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.props')" />
   <PropertyGroup Label="Globals">
     <ProjectGuid>{e759084f-6445-400d-8f43-a64a6e276659}</ProjectGuid>
@@ -61,9 +61,9 @@ powershell -Command tlbimp '$(IntDirFullPath)Generated Files\MIDL\$(ProjectName)
       <AdditionalLibraryDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)vendor\openvr\lib\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">xcopy /y /d "$(SolutionDir)external\driver_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\"
-xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\bin\win64\"
-xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">xcopy /y /d "$(SolutionDir)external\driver_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net8.0\win-$(Platform)\publish\Driver\Amethyst\"
+xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net8.0\win-$(Platform)\publish\Driver\Amethyst\bin\win64\"
+xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net8.0\win-$(Platform)\publish\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
@@ -82,9 +82,9 @@ powershell -Command tlbimp '$(IntDirFullPath)Generated Files\MIDL\$(ProjectName)
       <AdditionalLibraryDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)vendor\openvr\lib\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">xcopy /y /d "$(SolutionDir)external\driver_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\"
-xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\Driver\Amethyst\bin\win64\"
-xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net7.0\win10-$(Platform)\publish\"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">xcopy /y /d "$(SolutionDir)external\driver_resources\*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net8.0\win-$(Platform)\publish\Driver\Amethyst\"
+xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net8.0\win-$(Platform)\publish\Driver\Amethyst\bin\win64\"
+xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\net8.0\win-$(Platform)\publish\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Platform)'=='ARM64'">
@@ -131,14 +131,14 @@ xcopy /y /d /e "$(OutDir)*" "$(SolutionDir)plugin_OpenVR\bin\$(Configuration)\ne
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.props'))" />
     <Error Condition="!Exists('..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.props'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1\build\Microsoft.Windows.SDK.BuildTools.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1\build\Microsoft.Windows.SDK.BuildTools.props'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1\build\Microsoft.Windows.SDK.BuildTools.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1\build\Microsoft.Windows.SDK.BuildTools.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.240803.1\build\native\Microsoft.Windows.ImplementationLibrary.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.ImplementationLibrary.1.0.240803.1\build\native\Microsoft.Windows.ImplementationLibrary.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.250325.1\build\native\Microsoft.Windows.ImplementationLibrary.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.ImplementationLibrary.1.0.250325.1\build\native\Microsoft.Windows.ImplementationLibrary.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.4188\build\Microsoft.Windows.SDK.BuildTools.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.4188\build\Microsoft.Windows.SDK.BuildTools.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.4188\build\Microsoft.Windows.SDK.BuildTools.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.4188\build\Microsoft.Windows.SDK.BuildTools.targets'))" />
   </Target>
   <Import Project="..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.targets" Condition="Exists('..\packages\Azure.CodeSigning.Client.1.0.47\build\Azure.CodeSigning.Client.targets')" />
-  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.240405.15\build\native\Microsoft.Windows.CppWinRT.targets')" />
-  <Import Project="..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1\build\Microsoft.Windows.SDK.BuildTools.targets" Condition="Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.1\build\Microsoft.Windows.SDK.BuildTools.targets')" />
-  <Import Project="..\packages\Microsoft.Windows.ImplementationLibrary.1.0.240803.1\build\native\Microsoft.Windows.ImplementationLibrary.targets" Condition="Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.240803.1\build\native\Microsoft.Windows.ImplementationLibrary.targets')" />
+  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.targets')" />
+  <Import Project="..\packages\Microsoft.Windows.ImplementationLibrary.1.0.250325.1\build\native\Microsoft.Windows.ImplementationLibrary.targets" Condition="Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.250325.1\build\native\Microsoft.Windows.ImplementationLibrary.targets')" />
+  <Import Project="..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.4188\build\Microsoft.Windows.SDK.BuildTools.targets" Condition="Exists('..\packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.4188\build\Microsoft.Windows.SDK.BuildTools.targets')" />
 </Project>

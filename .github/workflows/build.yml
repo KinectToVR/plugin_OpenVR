@@ -25,19 +25,19 @@ jobs:
       - name: Build the OpenVR Emulation driver
         run: |
             nuget restore
-            msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win10-x64 /t:driver_00Amethyst
+            msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win-x64 /t:driver_00Amethyst
         
       - name: Build the OpenVR driver
         run: |
             nuget restore
-            msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win10-x64 /t:driver_Amethyst
+            msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win-x64 /t:driver_Amethyst
         
       - name: Restore and build (publish)
-        run: msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win10-x64 /t:plugin_OpenVR:Publish /p:PublishProfile=plugin_OpenVR\Properties\PublishProfiles\FolderProfile.pubxml
+        run: msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win-x64 /t:plugin_OpenVR:Publish /p:PublishProfile=plugin_OpenVR\Properties\PublishProfiles\FolderProfile.pubxml
 
       - name: Pack published files
         run: |
-          cd plugin_OpenVR/bin/Release/net7.0/win10-x64/publish
+          cd plugin_OpenVR/bin/Release/net8.0/win-x64/publish
           7z a plugin_OpenVR.zip *
         
       - name: Upload plugin artifact
@@ -48,5 +48,5 @@ jobs:
           prerelease: true
           title: "plugin_OpenVR Build Artifact"
           files: |
-            ./plugin_OpenVR/bin/Release/net7.0/win10-x64/publish/plugin_OpenVR.zip
+            ./plugin_OpenVR/bin/Release/net8.0/win-x64/publish/plugin_OpenVR.zip
             ./external/manifest.json
