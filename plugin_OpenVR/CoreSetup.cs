@@ -34,19 +34,23 @@ internal class DriverInstaller : IDependencyInstaller
 
     public List<IDependency> ListDependencies()
     {
-        return
+        List<IDependency> dep =
         [
             new VrDriver
             {
                 Host = Host,
                 Name = Host?.RequestLocalizedString("/Dependencies/Driver") ?? "OpenVR Driver"
-            },
-            new NullDriver
+            }
+        ];
+
+        if (SteamVR.Instance is not null)
+            dep.Add(new NullDriver
             {
                 Host = Host,
                 Name = Host?.RequestLocalizedString("/Dependencies/Null") ?? "Null Driver"
-            }
-        ];
+            });
+
+        return dep;
     }
 
     public List<IFix> ListFixes()
