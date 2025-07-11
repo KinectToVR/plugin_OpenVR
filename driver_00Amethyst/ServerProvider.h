@@ -4,19 +4,28 @@
 
 #include <set>
 #include <map>
+#include <semaphore>
 
-class ServerProvider : public vr::IServerTrackedDeviceProvider
+class ServerProvider : public vr::IServerTrackedDeviceProvider, IRebuildCallback
 {
 private:
-    winrt::com_ptr<DriverService> driver_service_;
+    winrt::com_ptr<DriverService> driver_service_ = nullptr;
+    std::map<ITrackerType, BodyTracker> tracker_vector_ = {};
     std::map<uint32_t, dDriverPose> pose_overrides_;
 
-public:
-    virtual ~ServerProvider();
+    std::counting_semaphore<1> driver_semaphore_{0};
+    DWORD register_cookie_ = 0;
 
-    ServerProvider();
+public:
+    ServerProvider() = default;
 
     vr::EVRInitError Init(vr::IVRDriverContext* pDriverContext) override;
+
+    void SetupService(_GUID clsid = CLSID_DriverService);
+
+    void OnRebuildRequested() override;
+
+    void DriverCleanup();
 
     void Cleanup() override;
 

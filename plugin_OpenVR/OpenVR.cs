@@ -485,7 +485,9 @@ public class SteamVR : IServiceEndpoint
             OpenVR.Shutdown(); // Shutdown OpenVR
 
             ServiceStatus = 1; // Update VR status
-            K2ServerDriverRefresh();
+
+            // K2ServerDriverRefresh(); // TODO
+            Host?.RefreshStatusInterface();
         }
     }
 
@@ -792,7 +794,8 @@ public class SteamVR : IServiceEndpoint
     {
         try
         {
-            Host?.Log("Registering the COM proxy/stub...");
+            Host?.Log("Resetting the COM proxy/stub...");
+            // ((HRESULT)DriverHelper.UninstallDriverProxyStub(IsEmulationEnabled)).ThrowIfFailed();
             ((HRESULT)DriverHelper.InstallDriverProxyStub(IsEmulationEnabled)).ThrowIfFailed();
 
             Host?.Log("Searching for the COM driver service...");

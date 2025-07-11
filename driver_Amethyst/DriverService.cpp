@@ -1,26 +1,14 @@
 #include "DriverService.h"
 #include <RpcProxy.h>
 #include <shellapi.h>
-#include <wil/cppwinrt_helpers.h>
 
 #include "constants.hpp"
 #include "Logging.h"
 #include "util/color.hpp"
 
-// Wide String to UTF8 String
-inline std::string WStringToString(const std::wstring& w_str)
-{
-    const int count = WideCharToMultiByte(CP_UTF8, 0, w_str.c_str(), w_str.length(), nullptr, 0, nullptr, nullptr);
-    std::string str(count, 0);
-    WideCharToMultiByte(CP_UTF8, 0, w_str.c_str(), -1, str.data(), count, nullptr, nullptr);
-    return str;
-}
-
 DWORD DriverService::proxy_stub_registration_cookie_ = 0;
 
-DriverService::DriverService() : register_cookie_(0)
-{
-}
+DriverService::DriverService() = default;
 
 HRESULT DriverService::GetVersion(DWORD* apiVersion) noexcept
 {
@@ -34,30 +22,31 @@ HRESULT DriverService::GetVersion(DWORD* apiVersion) noexcept
 
 HRESULT DriverService::SetTrackerState(dTrackerBase tracker)
 {
-    if (tracker_vector_.size() > static_cast<int>(tracker.Role))
+    if (tracker_vector_ == nullptr) return E_FAIL;
+    if (tracker_vector_->size() > static_cast<int>(tracker.Role))
     {
         // Create a handle to the updated (native) tracker
-        const auto p_tracker = &tracker_vector_.at(tracker.Role);
+        const auto p_tracker = &tracker_vector_->at(tracker.Role);
 
         // Check the state and attempts spawning the tracker
         if (!p_tracker->is_added() && !p_tracker->spawn())
         {
-            logMessage(std::format("Couldn't spawn tracker with ID {} due to an unknown native exception.",
+            logMessage(std::format("Couldn't spawn tracker ID {} due to an unknown native exception.",
                                    static_cast<int>(tracker.Role)));
             return E_FAIL; // Failure
         }
 
         // Set the state of the native tracker
         p_tracker->set_state(tracker.ConnectionState);
-        logMessage(std::format("Unmanaged (native) tracker with ID {} state has been set to {}.",
+        logMessage(std::format("Tracker ID {} state set to {}.",
                                static_cast<int>(tracker.Role), tracker.ConnectionState == 1));
 
         // Call the VR update handler and compose the result
-        tracker_vector_.at(tracker.Role).update();
+        tracker_vector_->at(tracker.Role).update();
         return S_OK;
     }
 
-    logMessage(std::format("Couldn't spawn tracker with ID {}. The tracker index was out of bounds.",
+    logMessage(std::format("Couldn't spawn tracker ID {}. The tracker index was out of bounds.",
                            static_cast<int>(tracker.Role)));
 
     return ERROR_INVALID_INDEX; // Failure
@@ -65,12 +54,13 @@ HRESULT DriverService::SetTrackerState(dTrackerBase tracker)
 
 HRESULT DriverService::UpdateTracker(dTrackerBase tracker)
 {
-    if (tracker_vector_.size() > static_cast<int>(tracker.Role))
+    if (tracker_vector_ == nullptr) return E_FAIL;
+    if (tracker_vector_->size() > static_cast<int>(tracker.Role))
     {
         // Update the pose of the passed tracker
-        if (!tracker_vector_.at(tracker.Role).set_pose(tracker))
+        if (!tracker_vector_->at(tracker.Role).set_pose(tracker))
         {
-            logMessage(std::format("Couldn't spawn tracker with ID {} due to an unknown native exception.",
+            logMessage(std::format("Couldn't spawn tracker ID {} due to an unknown native exception.",
                                    static_cast<int>(tracker.Role)));
             return E_FAIL; // Failure
         }
@@ -79,7 +69,7 @@ HRESULT DriverService::UpdateTracker(dTrackerBase tracker)
         return S_OK;
     }
 
-    logMessage(std::format("Couldn't spawn tracker with ID {}. The tracker index was out of bounds.",
+    logMessage(std::format("Couldn't spawn tracker ID {}. The tracker index was out of bounds.",
                            static_cast<int>(tracker.Role)));
 
     return ERROR_INVALID_INDEX; // Failure
@@ -149,45 +139,28 @@ void DriverService::UninstallProxyStub()
     }
 }
 
-std::optional<winrt::hresult_error> DriverService::SetupService(const _GUID clsid)
+void DriverService::TrackerVector(std::vector<BodyTracker>* const& vector)
 {
-    try
-    {
-        InstallProxyStub();
-
-        winrt::com_ptr<IUnknown> service;
-        winrt::check_hresult(RegisterActiveObject(
-            static_cast<IDriverService*>(this),
-            clsid, ACTIVEOBJECT_STRONG,
-            &register_cookie_));
-
-        winrt::check_hresult(GetActiveObject(
-            clsid, nullptr, service.put()));
-    }
-    catch (const winrt::hresult_error& e)
-    {
-        return e;
-    }
-    catch (...)
-    {
-        return winrt::hresult_error(-1);
-    }
-
-    return std::nullopt;
+    tracker_vector_ = vector;
 }
 
-void DriverService::UpdateTrackers()
+void DriverService::RebuildCallback(IRebuildCallback* callback)
 {
-    for (auto& tracker : tracker_vector_)
-        tracker.update(); // Update all
+    rebuild_callback_ = callback;
 }
 
-void DriverService::AddTracker(const std::string& serial, const ITrackerType role)
+ULONG DriverService::Release() noexcept
 {
-    tracker_vector_.emplace_back(serial, role);
-}
+    const auto count = implements::Release();
+    logMessage(std::format("COM ref released, running total: {}", count));
 
-std::vector<BodyTracker> DriverService::TrackerVector()
-{
-    return tracker_vector_;
+    if (count == 1 && rebuild_callback_)
+    {
+        logMessage("Client disconnected");
+        logMessage("COM revocation detected, requesting rebuild!");
+        rebuild_callback_->OnRebuildRequested();
+        rebuild_callback_ = nullptr; // Clear the callback
+    }
+
+    return count;
 }

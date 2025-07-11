@@ -13,11 +13,18 @@
 #include "BodyTracker.h"
 #include "driver_Amethyst.h"
 #include "wilx.hpp"
+#include "Logging.h"
 
 extern "C" {
 _Check_return_ HRESULT STDAPICALLTYPE DLLGETCLASSOBJECT_ENTRY(
     _In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ void** ppv);
 }
+
+struct IRebuildCallback
+{
+    virtual void OnRebuildRequested() = 0;
+    virtual ~IRebuildCallback() = default;
+};
 
 class DriverService : public winrt::implements<
         DriverService, IDriverService, IVersionedApi, winrt::non_agile>
@@ -44,16 +51,14 @@ public:
     static void InstallProxyStub();
     static void UninstallProxyStub();
 
-    std::optional<winrt::hresult_error> SetupService(_GUID clsid);
+    void TrackerVector(std::vector<BodyTracker>* const& vector);
+    void RebuildCallback(IRebuildCallback* callback);
 
-    void UpdateTrackers();
-    void AddTracker(const std::string& serial, const ITrackerType role);
-    std::vector<BodyTracker> TrackerVector();
+    ULONG __stdcall Release() noexcept override;
 
 private:
-    DWORD register_cookie_;
-    std::vector<BodyTracker> tracker_vector_;
-
+    IRebuildCallback* rebuild_callback_ = nullptr;
+    std::vector<BodyTracker>* tracker_vector_ = nullptr;
     static DWORD proxy_stub_registration_cookie_;
 };
 
