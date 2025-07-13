@@ -215,10 +215,13 @@ bool ServerProvider::HandleDevicePoseUpdated(uint32_t openVRID, vr::DriverPose_t
     // Apply pose overrides for selected IDs
     if (pose_overrides_.contains(openVRID))
     {
-        pose.qRotation.w = pose_overrides_[openVRID].Orientation.W;
-        pose.qRotation.x = pose_overrides_[openVRID].Orientation.X;
-        pose.qRotation.y = pose_overrides_[openVRID].Orientation.Y;
-        pose.qRotation.z = pose_overrides_[openVRID].Orientation.Z;
+        if (openVRID != 0)
+        {
+            pose.qRotation.w = pose_overrides_[openVRID].Orientation.W;
+            pose.qRotation.x = pose_overrides_[openVRID].Orientation.X;
+            pose.qRotation.y = pose_overrides_[openVRID].Orientation.Y;
+            pose.qRotation.z = pose_overrides_[openVRID].Orientation.Z;
+        }
 
         pose.vecPosition[0] = pose_overrides_[openVRID].Position.X;
         pose.vecPosition[1] = pose_overrides_[openVRID].Position.Y;
