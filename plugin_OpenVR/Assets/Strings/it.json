@@ -182,5 +182,65 @@
       "id": "/Dependencies/Driver",
       "translation": "OpenVR Driver"
     }
+    {
+	    "id": "/Dependencies/Null",
+	    "translation": "Null Driver"
+    },
+    {
+      "id": "/InputActions/Buttons/View",
+      "translation": "Manage custom input actions"
+    },
+    {
+      "id": "/InputActions/Picker/Options/New",
+      "translation": "New action"
+    },
+    {
+      "id": "/SettingsPage/Placeholders/NewAction",
+      "translation": "New Input Action"
+    },
+    {
+      "id": "/InputActions/Buttons/Test",
+      "translation": "Test"
+    },
+    {
+      "id": "/InputActions/Buttons/Remove",
+      "translation": "Remove"
+    },
+    {
+      "id": "/InputActions/Buttons/Add",
+      "translation": "Add"
+    },
+    {
+      "id": "/InputActions/Title/NoSelection",
+      "translation": "No selection"
+    },
+    {
+      "id": "/InputActions/Picker/NoSelection",
+      "translation": "Click on one of the registered input actions to preview it.\nYou'll be able to edit its code, test, or delete forever."
+    },
+    {
+      "id": "/InputActions/Code/Input",
+      "translation": "Write your own handler for this input action using C#, and click 'Add' to register the action in SteamVR. Then, go to SteamVR Input settings and bind your chord to your own input.\n\nYou can use the chord data by accessing the 'data' global variable. It's also possible to evaluate the script in Amethyst's context by adding \"hosted\" at the beginning.\n\nFor example, to despawn the trackers:\n{\n    hosted\n    Interfacing.AppTrackersInitialized = false;\n}\n\nFor more info, please refer to docs.k2vr.tech and learn.microsoft.com"
+    },
+    {
+       "id": "/InputActions/Code/Test",
+       "translation": "The output from code testing will appear here..."
+    },
+    {
+       "id": "/ServerStatuses/-110/Title",
+       "translation": "The registered OpenVR driver does not support emulation."
+    },
+    {
+       "id": "/ServerStatuses/-111/Title",
+       "translation": "The registered OpenVR driver has device and input emulation enabled."
+    },
+    {
+       "id": "/ServerStatuses/-110/Content",
+       "translation": "Please re-register the driver entry from SteamVR service settings within Amethyst."
+    },
+    {
+       "id": "/ServerStatuses/-111/Content",
+       "translation": "Please re-register the driver entry from SteamVR service settings within Amethyst."
+    }
   ]
 }
