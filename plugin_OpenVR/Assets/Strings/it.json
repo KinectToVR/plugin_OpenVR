@@ -180,7 +180,67 @@
     },
     {
       "id": "/Dependencies/Driver",
-      "translation": "OpenVR Driver"
+      "translation": "Driver OpenVR"
+    }
+    {
+      "id": "/Dependencies/Null",
+      "translation": "Driver Null"
+    },
+    {
+      "id": "/InputActions/Buttons/View",
+      "translation": "Configura azioni input personalizzati"
+    },
+    {
+      "id": "/InputActions/Picker/Options/New",
+      "translation": "Nuova azione"
+    },
+    {
+      "id": "/SettingsPage/Placeholders/NewAction",
+      "translation": "Nuova Azione Input"
+    },
+    {
+      "id": "/InputActions/Buttons/Test",
+      "translation": "Test"
+    },
+    {
+      "id": "/InputActions/Buttons/Remove",
+      "translation": "Rimuovi"
+    },
+    {
+      "id": "/InputActions/Buttons/Add",
+      "translation": "Aggiungi"
+    },
+    {
+      "id": "/InputActions/Title/NoSelection",
+      "translation": "Nessuna selezione"
+    },
+    {
+      "id": "/InputActions/Picker/NoSelection",
+      "translation": "Clicca su una delle azioni di input registrate per visualizzarla in anteprima.\nPotrai modificarne il codice, testarla o eliminarla per sempre."
+    },
+    {
+      "id": "/InputActions/Code/Input",
+      "translation": "Scrivi il tuo gestore per questa azione di input usando C# e clicca su 'Aggiungi' per registrare l'azione in SteamVR. Quindi, vai alle impostazioni di input di SteamVR e associa la tua combinazione al tuo input.\n\nPuoi usare i dati della combinazione accedendo alla variabile globale 'data'. È anche possibile valutare lo script nel contesto di Amethyst aggiungendo \"hosted\" all'inizio.\n\nAd esempio, per disattivare il tracciamento:\n{\n    hosted\n    Interfacing.AppTrackersInitialized = false;\n}\n\nPer maggiori informazioni, consulta docs.k2vr.tech e learn.microsoft.com"
+    },
+    {
+      "id": "/InputActions/Code/Test",
+      "translation": "L'output del test del codice apparirà qui..."
+    },
+    {
+      "id": "/ServerStatuses/-110/Title",
+      "translation": "Il driver OpenVR registrato non supporta l'emulazione."
+    },
+    {
+      "id": "/ServerStatuses/-111/Title",
+      "translation": "Il driver OpenVR registrato ha l'emulazione del dispositivo e dell'input abilitata."
+    },
+    {
+      "id": "/ServerStatuses/-110/Content",
+      "translation": "Per favore, registra nuovamente la voce del driver dalle impostazioni del servizio SteamVR all'interno di Amethyst."
+    },
+    {
+      "id": "/ServerStatuses/-111/Content",
+      "translation": "Per favore, registra nuovamente la voce del driver dalle impostazioni del servizio SteamVR all'interno di Amethyst."
     }
   ]
 }
