@@ -249,6 +249,14 @@
         {
             "id": "/ServerStatuses/-111/Content",
             "translation": "Please re-register the driver entry from SteamVR service settings within Amethyst."
+        },
+        {
+            "id": "/Settings/Toggles/Standable",
+            "translation": "Turn on Standable support"
+        },
+        {
+            "id": "/Settings/Toggles/Standable/Comment",
+            "translation": "ー Amethyst will mark inferred trackers as invalid"
         }
     ]
 }

@@ -664,9 +664,11 @@ public class SteamVR : IServiceEndpoint
             var enumTrackerBases = trackerBases.ToList();
             foreach (var trackerBase in enumTrackerBases.ToList())
                 if (IsEmulationEnabled)
-                    _00driverService?.SetTrackerState(trackerBase.ComTracker00());
+                    _00driverService?.SetTrackerState(trackerBase.ComTracker00(
+                        Host.PluginSettings.GetSetting("StandableSupport", false)));
                 else
-                    _driverService?.SetTrackerState(trackerBase.ComTracker());
+                    _driverService?.SetTrackerState(trackerBase.ComTracker(
+                        Host.PluginSettings.GetSetting("StandableSupport", false)));
 
             return Task.FromResult(wantReply ? enumTrackerBases.Select(x => (x, true)) : null);
         }
@@ -691,9 +693,11 @@ public class SteamVR : IServiceEndpoint
             var enumTrackerBases = trackerBases.ToList();
             foreach (var trackerBase in enumTrackerBases.ToList())
                 if (IsEmulationEnabled)
-                    _00driverService?.UpdateTracker(trackerBase.ComTracker00());
+                    _00driverService?.UpdateTracker(trackerBase.ComTracker00(
+                        Host.PluginSettings.GetSetting("StandableSupport", false)));
                 else
-                    _driverService?.UpdateTracker(trackerBase.ComTracker());
+                    _driverService?.UpdateTracker(trackerBase.ComTracker(
+                        Host.PluginSettings.GetSetting("StandableSupport", false)));
 
             return Task.FromResult(wantReply ? enumTrackerBases.Select(x => (x, true)) : null);
         }
@@ -1231,12 +1235,14 @@ public class SteamVR : IServiceEndpoint
 
 public static class OvrExtensions
 {
-    public static driver_Amethyst.dTrackerBase ComTracker(this TrackerBase tracker)
+    public static driver_Amethyst.dTrackerBase ComTracker(this TrackerBase tracker, bool allowInferred)
     {
         return new driver_Amethyst.dTrackerBase
         {
             ConnectionState = Convert.ToSByte(tracker.ConnectionState),
-            TrackingState = Convert.ToSByte(tracker.TrackingState == TrackedJointState.StateTracked),
+            TrackingState = Convert.ToSByte(allowInferred
+                ? tracker.TrackingState is not TrackedJointState.StateNotTracked
+                : tracker.TrackingState is TrackedJointState.StateTracked),
             Serial = tracker.Serial,
             Role = (driver_Amethyst.dTrackerType)tracker.Role,
             Position = tracker.Position.ComVector(),
@@ -1248,12 +1254,14 @@ public static class OvrExtensions
         };
     }
 
-    public static driver_00Amethyst.dTrackerBase ComTracker00(this TrackerBase tracker)
+    public static driver_00Amethyst.dTrackerBase ComTracker00(this TrackerBase tracker, bool allowInferred)
     {
         return new driver_00Amethyst.dTrackerBase
         {
             ConnectionState = Convert.ToSByte(tracker.ConnectionState),
-            TrackingState = Convert.ToSByte(tracker.TrackingState == TrackedJointState.StateTracked),
+            TrackingState = Convert.ToSByte(allowInferred
+                ? tracker.TrackingState is not TrackedJointState.StateNotTracked
+                : tracker.TrackingState is TrackedJointState.StateTracked),
             Serial = tracker.Serial,
             Role = (driver_00Amethyst.dTrackerType)tracker.Role,
             Position = tracker.Position.ComVector00(),

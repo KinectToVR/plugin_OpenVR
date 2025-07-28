@@ -65,6 +65,7 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
     public bool SelectedActionInvalid => !SelectedActionValid;
     public bool ActionValid => TreeSelectedAction is not null && (!IsAddingNewAction || !string.IsNullOrEmpty(SelectedActionName));
     public string NewActionName { get; set; }
+    private bool PageLoaded { get; set; } = false;
 
     public IEnumerable<InputAction> CustomActions =>
         DataParent.VrInput.RegisteredActions.Actions.Where(x => x.Custom);
@@ -76,6 +77,16 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         {
             if (TreeSelectedAction is null) return;
             TreeSelectedAction.Code = value;
+        }
+    }
+
+    public bool IsStandableSupportEnabled
+    {
+        get => Host?.PluginSettings.GetSetting("StandableSupport", false) ?? false;
+        set
+        {
+            if (Host?.PluginSettings is null || !PageLoaded) return;
+            Host?.PluginSettings.SetSetting("StandableSupport", value);
         }
     }
 
@@ -667,5 +678,13 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
             ActionsListView.SelectedItem = ActionsListView.Items.Last();
 
         await Tree_LaunchTransition();
+    }
+
+    private void SettingsPage_OnLoaded(object sender, RoutedEventArgs e)
+    {
+        PageLoaded = true;
+
+        if (StandableToggleSwitch is not null)
+            StandableToggleSwitch.IsOn = IsStandableSupportEnabled;
     }
 }

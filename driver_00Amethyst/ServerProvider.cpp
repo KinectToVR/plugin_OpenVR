@@ -55,7 +55,7 @@ vr::EVRInitError ServerProvider::Init(vr::IVRDriverContext* pDriverContext)
             catch (const winrt::hresult_error& e)
             {
                 logMessage(std::format("Could not update pose override for ID {}. Exception: {}", id,
-                    WStringToString(e.message().c_str())));
+                                       WStringToString(e.message().c_str())));
                 return e.code().value;
             }
             catch (const std::exception& e)
@@ -77,7 +77,7 @@ vr::EVRInitError ServerProvider::Init(vr::IVRDriverContext* pDriverContext)
             catch (const winrt::hresult_error& e)
             {
                 logMessage(std::format("Could not update pose override for ID {}. Exception: {}", id,
-                    WStringToString(e.message().c_str())));
+                                       WStringToString(e.message().c_str())));
                 return e.code().value;
             }
             catch (const std::exception& e)
@@ -99,11 +99,20 @@ void ServerProvider::SetupService(const _GUID clsid)
         try
         {
             init_apartment(winrt::apartment_type::multi_threaded);
-            winrt::check_hresult(CoInitializeSecurity(
+            if (const auto& result = CoInitializeSecurity(
                 nullptr, -1, nullptr, nullptr,
-                RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
-                RPC_C_IMP_LEVEL_IDENTIFY,
-                nullptr, EOAC_NONE, nullptr));
+                RPC_C_AUTHN_LEVEL_PKT_PRIVACY, RPC_C_IMP_LEVEL_IDENTIFY,
+                nullptr, EOAC_NONE, nullptr); FAILED(result))
+            {
+                logMessage("Failed to initialize security! "
+                    "Amethyst's COM server may be revoked when the app disconnects.");
+
+                if (result == RPC_E_TOO_LATE)
+                    logMessage("Reason: CoInitializeSecurity was already called by another driver.");
+                else
+                    logMessage(std::format(
+                        "Reason: {}", WStringToString(winrt::hresult_error(result).message().c_str())));
+            }
 
             DriverCleanup();
             driver_service_ = winrt::make_self<DriverService>();
