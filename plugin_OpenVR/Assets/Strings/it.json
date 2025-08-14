@@ -31,7 +31,7 @@
     },
     {
       "id": "/SettingsPage/Buttons/ReRegister",
-      "translation": "Ri-registra l'entry dei driver di SteamVR"
+      "translation": "Ri-registra driver di SteamVR"
     },
     {
       "id": "/SettingsPage/ReManifest/Error/NotFound",
@@ -180,7 +180,75 @@
     },
     {
       "id": "/Dependencies/Driver",
-      "translation": "OpenVR Driver"
+      "translation": "Driver OpenVR"
+    },
+    {
+      "id": "/Dependencies/Null",
+      "translation": "Driver Null"
+    },
+    {
+      "id": "/InputActions/Buttons/View",
+      "translation": "Gestisci input azioni personalizzate"
+    },
+    {
+      "id": "/InputActions/Picker/Options/New",
+      "translation": "Nuova azione"
+    },
+    {
+      "id": "/SettingsPage/Placeholders/NewAction",
+      "translation": "Nuova Azione Input"
+    },
+    {
+      "id": "/InputActions/Buttons/Test",
+      "translation": "Prova"
+    },
+    {
+      "id": "/InputActions/Buttons/Remove",
+      "translation": "Rimuovi"
+    },
+    {
+      "id": "/InputActions/Buttons/Add",
+      "translation": "Aggiungi"
+    },
+    {
+      "id": "/InputActions/Title/NoSelection",
+      "translation": "Nessuna selezione"
+    },
+    {
+      "id": "/InputActions/Picker/NoSelection",
+      "translation": "Clicca su una delle azioni input registrate per visualizzarla.\nPotrai modificare il suo codice, provarla o eliminarla per sempre."
+    },
+    {
+      "id": "/InputActions/Code/Input",
+      "translation": "Scrivi il tuo gestore per questa azione input utilizzando C# e clicca 'Aggiungi' per registrare l'azione su SteamVR. Pou, vai su sulle impostazioni Input SteamVR e associa la combinazione al tuo input.\n\nPuoi utilizzare i dati della combinazione accedendo alla variabile globale 'data'. Inoltre è possibile valutare lo script nel contesto di Amethyst aggiungendo \"hosted\" all'inizio.\n\nAd esempio, per despawnare i tracker:\n{\n    hosted\n    Interfacing.AppTrackersInitialized = false;\n}\n\nPer più informazioni, fai riferimento a docs.k2vr.tech e learn.microsoft.com"
+    },
+    {
+      "id": "/InputActions/Code/Test",
+      "translation": "L'output del codice in test apparirà qui..."
+    },
+    {
+      "id": "/ServerStatuses/-110/Title",
+      "translation": "Il driver OpenVR registrato non supporta l'emulaizone."
+    },
+    {
+      "id": "/ServerStatuses/-111/Title",
+      "translation": "Il driver OpenVR registrato ha l'emulazione dispositivo e input abilitate."
+    },
+    {
+      "id": "/ServerStatuses/-110/Content",
+      "translation": "Ri-registra l'entry del driver dalle impostazioni del servizio di SteamVR su Amethyst"
+    },
+    {
+      "id": "/ServerStatuses/-111/Content",
+      "translation": "Ri-registra l'entry del driver dalle impostazioni del servizio di SteamVR su Amethyst"
+    },
+    {
+      "id": "/Settings/Toggles/Standable",
+      "translation": "Abilita il supporto a Standable"
+    },
+    {
+      "id": "/Settings/Toggles/Standable/Comment",
+      "translation": "ー Amethyst contrassegnerà i tracker dedotti come invalidi"
     }
   ]
 }
