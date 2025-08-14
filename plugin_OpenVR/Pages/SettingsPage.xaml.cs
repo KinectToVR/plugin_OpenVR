@@ -87,6 +87,9 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         {
             if (Host?.PluginSettings is null || !PageLoaded) return;
             Host?.PluginSettings.SetSetting("StandableSupport", value);
+
+            if (DataParent is null) return;
+            DataParent.IsStandableSupportEnabled = value;
         }
     }
 

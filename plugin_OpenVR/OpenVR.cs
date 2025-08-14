@@ -50,6 +50,7 @@ public class SteamVR : IServiceEndpoint
     private ulong _vrOverlayHandle = OpenVR.k_ulOverlayHandleInvalid;
     private bool _isEmulationEnabledLast;
     private int _serviceStatus;
+    private static bool _logInputVerbose;
 
     public SteamVR()
     {
@@ -58,7 +59,18 @@ public class SteamVR : IServiceEndpoint
 
     public static SteamVR Instance { get; set; }
 
+    public static bool LogInputVerbose
+    {
+        get => _logInputVerbose;
+        set
+        {
+            _logInputVerbose = value;
+            Instance?.Host?.Log($"Changed verbose input logging to: {value}");
+        }
+    }
+
     public string DriverFolderName => IsEmulationEnabled ? "00Amethyst" : "Amethyst";
+    public bool IsStandableSupportEnabled { get; set; } // Managed by SettingsPage
 
     public SteamEvrInput VrInput { get; set; }
     public static SteamEvrInput VrInputStatic { get; set; }
@@ -400,6 +412,9 @@ public class SteamVR : IServiceEndpoint
 
         PluginLoaded = true;
         _isEmulationEnabledLast = IsEmulationEnabled;
+
+        IsStandableSupportEnabled = Host?.PluginSettings
+            .GetSetting("StandableSupport", false) ?? false;
     }
 
     public int Initialize()
@@ -664,11 +679,9 @@ public class SteamVR : IServiceEndpoint
             var enumTrackerBases = trackerBases.ToList();
             foreach (var trackerBase in enumTrackerBases.ToList())
                 if (IsEmulationEnabled)
-                    _00driverService?.SetTrackerState(trackerBase.ComTracker00(
-                        Host.PluginSettings.GetSetting("StandableSupport", false)));
+                    _00driverService?.SetTrackerState(trackerBase.ComTracker00(IsStandableSupportEnabled));
                 else
-                    _driverService?.SetTrackerState(trackerBase.ComTracker(
-                        Host.PluginSettings.GetSetting("StandableSupport", false)));
+                    _driverService?.SetTrackerState(trackerBase.ComTracker(IsStandableSupportEnabled));
 
             return Task.FromResult(wantReply ? enumTrackerBases.Select(x => (x, true)) : null);
         }
@@ -693,11 +706,9 @@ public class SteamVR : IServiceEndpoint
             var enumTrackerBases = trackerBases.ToList();
             foreach (var trackerBase in enumTrackerBases.ToList())
                 if (IsEmulationEnabled)
-                    _00driverService?.UpdateTracker(trackerBase.ComTracker00(
-                        Host.PluginSettings.GetSetting("StandableSupport", false)));
+                    _00driverService?.UpdateTracker(trackerBase.ComTracker00(IsStandableSupportEnabled));
                 else
-                    _driverService?.UpdateTracker(trackerBase.ComTracker(
-                        Host.PluginSettings.GetSetting("StandableSupport", false)));
+                    _driverService?.UpdateTracker(trackerBase.ComTracker(IsStandableSupportEnabled));
 
             return Task.FromResult(wantReply ? enumTrackerBases.Select(x => (x, true)) : null);
         }

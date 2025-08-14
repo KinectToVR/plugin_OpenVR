@@ -216,7 +216,7 @@ public class InputAction(string name = "", string type = "boolean", string requi
 
         DataDigital = pData;
 
-        if (pData.bChanged) Host?.Log($"{Name} -> {pData.bState}");
+        if (SteamVR.LogInputVerbose && pData.bChanged) Host?.Log($"{Name} -> {pData.bState}");
 
         if (error == EVRInputError.None) return true;
         Host?.Log($"GetDigitalActionData call error: {error}", LogSeverity.Error);
@@ -235,7 +235,7 @@ public class InputAction(string name = "", string type = "boolean", string requi
 
         DataAnalog = pData;
 
-        if (log && pData.deltaX != 0.0f || pData.deltaY != 0.0f || pData.deltaZ != 0.0f) 
+        if (SteamVR.LogInputVerbose && log && pData.deltaX != 0.0f || pData.deltaY != 0.0f || pData.deltaZ != 0.0f)
             Host?.Log($"{Name} -> <{pData.x}, {pData.y}, {pData.z}>");
 
         if (error == EVRInputError.None) return true;
