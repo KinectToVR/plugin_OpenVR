@@ -10,8 +10,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Amethyst.Plugins.Contract;
-using Microsoft.UI.Xaml.Controls;
+using Amethyst.Contract;
+using Avalonia.Controls;
 using plugin_OpenVR.Pages;
 using plugin_OpenVR.Utils;
 using Valve.VR;
@@ -78,7 +78,7 @@ public class SteamVR : IServiceEndpoint
     private static object InitLock { get; } = new();
 
     private bool PluginLoaded { get; set; }
-    private Page InterfaceRoot { get; set; }
+    private UserControl InterfaceRoot { get; set; }
     private SettingsPage Settings { get; set; }
 
     private Vector3 VrPlayspaceTranslation =>
@@ -92,7 +92,7 @@ public class SteamVR : IServiceEndpoint
     private Exception ServerDriverException { get; set; }
     private bool ServerDriverPresent => ServiceStatus == 0;
 
-    [Import(typeof(IAmethystHost))] private IAmethystHost Host { get; set; }
+    [Import(typeof(IAmethystHost))] public IAmethystHost Host { get; set; }
 
     public static IAmethystHost HostStatic { get; set; }
 
@@ -192,9 +192,6 @@ public class SteamVR : IServiceEndpoint
         IsControllerEmulationEnabled || IsHeadsetEmulationEnabled;
 
     public bool CanAutoStartAmethyst => true;
-
-    public bool IsSettingsDaemonSupported => true;
-
     public object SettingsInterfaceRoot => InterfaceRoot;
 
     public int? ServiceStatusSoftLock { get; set; }
@@ -405,10 +402,7 @@ public class SteamVR : IServiceEndpoint
         HostStatic = Host;
 
         Settings = new SettingsPage { DataParent = this, Host = Host };
-        InterfaceRoot = new Page
-        {
-            Content = Settings
-        };
+        InterfaceRoot = Settings;
 
         PluginLoaded = true;
         _isEmulationEnabledLast = IsEmulationEnabled;

@@ -5,21 +5,18 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
-using Windows.ApplicationModel.Resources.Core;
 using Windows.Data.Json;
 using Windows.Storage;
-using Amethyst.Plugins.Contract;
-using Microsoft.UI.Text;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
+using Amethyst.Contract;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Interactivity;
+using Avalonia.Media;
 using Newtonsoft.Json;
 using plugin_OpenVR.Utils;
 using Valve.VR;
-using Microsoft.UI.Xaml.Media.Animation;
 
 namespace plugin_OpenVR.Pages;
 
@@ -27,21 +24,16 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
 {
     public SettingsPage()
     {
-        var pluginDir = Directory.GetParent(Assembly.GetAssembly(GetType())!.Location);
-
-        var priFile = StorageFile.GetFileFromPathAsync(
-            Path.Join(pluginDir!.FullName, "resources.pri")).GetAwaiter().GetResult();
-
-        ResourceManager.Current.LoadPriFiles([priFile]);
-        ResourceManager.Current.LoadPriFiles([priFile]);
-
-        Application.LoadComponent(this, new Uri($"ms-appx:///{Path.Join(pluginDir!.FullName, "Pages", $"{GetType().Name}.xaml")}"),
-            ComponentResourceLocation.Application);
+        InitializeComponent();
     }
 
     private bool _listViewChangeBlock = false;
     public bool IsAddingNewAction { get; set; }
-    public bool IsAddingNewActionInverse => !IsAddingNewAction;
+
+    public bool IsAddingNewActionInverse
+    {
+        get => !IsAddingNewAction;
+    }
 
     public IAmethystHost Host { get; set; }
     public SteamVR DataParent { get; set; }
@@ -49,9 +41,9 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
 
     public string SelectedActionName
     {
-        get => IsAddingNewAction && TreeSelectedAction is not null
-            ? NewActionName
-            : TreeSelectedAction?.NameLocalized ?? GetString("/InputActions/Title/NoSelection");
+        get => IsAddingNewAction && TreeSelectedAction is not null ?
+            NewActionName :
+            TreeSelectedAction?.NameLocalized ?? GetString("/InputActions/Title/NoSelection");
         set
         {
             if (!IsAddingNewAction || TreeSelectedAction is null) return;
@@ -60,15 +52,33 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         }
     }
 
-    public string SelectedActionDescription => TreeSelectedAction?.Name ?? string.Empty;
-    public bool SelectedActionValid => TreeSelectedAction?.Valid ?? false;
-    public bool SelectedActionInvalid => !SelectedActionValid;
-    public bool ActionValid => TreeSelectedAction is not null && (!IsAddingNewAction || !string.IsNullOrEmpty(SelectedActionName));
-    public string NewActionName { get; set; }
-    private bool PageLoaded { get; set; } = false;
+    public string SelectedActionDescription
+    {
+        get => TreeSelectedAction?.Name ?? string.Empty;
+    }
 
-    public IEnumerable<InputAction> CustomActions =>
-        DataParent.VrInput.RegisteredActions.Actions.Where(x => x.Custom);
+    public bool SelectedActionValid
+    {
+        get => TreeSelectedAction?.Valid ?? false;
+    }
+
+    public bool SelectedActionInvalid
+    {
+        get => !SelectedActionValid;
+    }
+
+    public bool ActionValid
+    {
+        get => TreeSelectedAction is not null && (!IsAddingNewAction || !string.IsNullOrEmpty(SelectedActionName));
+    }
+
+    public string NewActionName { get; set; }
+    public bool PageLoaded { get; set; } = false;
+
+    public IEnumerable<InputAction> CustomActions
+    {
+        get => DataParent?.VrInput?.RegisteredActions?.Actions?.Where(x => x?.Custom ?? false) ?? [];
+    }
 
     public string SelectedActionCode
     {
@@ -98,17 +108,17 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         return Host?.RequestLocalizedString(key) ?? key;
     }
 
-    private void ActionFailedFlyout_OnOpening(object sender, object e)
+    private void ActionFailedFlyout_OnOpening(object sender, EventArgs e)
     {
         Host?.PlayAppSound(SoundType.Show);
     }
 
-    private void ActionFailedFlyout_OnClosing(FlyoutBase sender, FlyoutBaseClosingEventArgs args)
+    private void ActionFailedFlyout_OnClosing(object o, CancelEventArgs cancelEventArgs)
     {
         Host?.PlayAppSound(SoundType.Hide);
     }
 
-    private void ActionsFlyout_OnOpening(object sender, object e)
+    private void ActionsFlyout_OnOpening(object sender, EventArgs e)
     {
         Host?.PlayAppSound(SoundType.Show);
         ReloadActions();
@@ -127,18 +137,18 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
             NewActionName = string.Empty;
         }
 
-        ActionsListView.SelectionMode = ListViewSelectionMode.None;
-        ActionsListView.SelectionMode = ListViewSelectionMode.Single;
+        ActionsListView.SelectionMode = SelectionMode.Toggle;
+        ActionsListView.SelectionMode = SelectionMode.Single;
 
         OnPropertyChanged();
     }
 
-    private void ActionsFlyout_OnClosing(FlyoutBase sender, FlyoutBaseClosingEventArgs args)
+    private void ActionsFlyout_OnClosing(object o, CancelEventArgs cancelEventArgs)
     {
         Host?.PlayAppSound(SoundType.Hide);
     }
 
-    private async void ActionTestButton_OnClick(SplitButton sender, SplitButtonClickEventArgs e)
+    private async void ActionTestButton_OnClick(object o, RoutedEventArgs routedEventArgs)
     {
         if (!TestResultsBox.IsLoaded || TreeSelectedAction is null) return;
         TestResultsBox.Text = await TreeSelectedAction.Invoke(null);
@@ -151,46 +161,16 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         DataParent.VrInput.SaveSettings();
 
         TreeSelectedAction = null;
-        ActionRemoveFlyout.Hide();
+        ActionRemoveSplitButton?.Flyout?.Hide();
 
         OnPropertyChanged();
-        await Tree_LaunchTransition();
     }
 
-    private async Task Tree_LaunchTransition()
+    private void ActionsListView_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        // Action stuff reload animation
-        try
+        if (sender is not ListBox view || _listViewChangeBlock) return;
+        if (e.AddedItems.Count < 1 || e.AddedItems[0] is not InputAction action)
         {
-            // Remove the only one child of our outer main content grid
-            // (What a bestiality it is to do that!!1)
-            OuterGrid.Children.Remove(PreviewGrid);
-            PreviewGrid.Transitions.Add(
-                new EntranceThemeTransition { IsStaggeringEnabled = false });
-
-            // Sleep peacefully pretending that noting happened
-            await Task.Delay(10);
-
-            // Re-add the child for it to play our funky transition
-            // (Though it's not the same as before...)
-            OuterGrid.Children.Add(PreviewGrid);
-
-            // Remove the transition
-            await Task.Delay(100);
-            PreviewGrid.Transitions.Clear();
-        }
-        catch (Exception e)
-        {
-            Host?.Log(e);
-        }
-    }
-
-    private async void ActionsListView_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (sender is not ListView view || _listViewChangeBlock) return;
-        if (e.AddedItems.FirstOrDefault() is not InputAction action)
-        {
-            await Tree_LaunchTransition();
             Host?.PlayAppSound(SoundType.Focus);
             return; // Give up now...
         }
@@ -201,16 +181,15 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         OnPropertyChanged();
 
         if (!shouldAnimate) return;
-        await Tree_LaunchTransition();
         Host?.PlayAppSound(SoundType.Invoke);
     }
 
-    private async void NewActionItem_OnClick(object sender, RoutedEventArgs e)
+    private void NewActionItem_OnClick(object sender, RoutedEventArgs e)
     {
         if (!ActionsListView.IsLoaded) return;
 
-        ActionsListView.SelectionMode = ListViewSelectionMode.None;
-        ActionsListView.SelectionMode = ListViewSelectionMode.Single;
+        ActionsListView.SelectionMode = SelectionMode.Toggle;
+        ActionsListView.SelectionMode = SelectionMode.Single;
 
         TreeSelectedAction = new InputAction(
             $"/actions/default/in/{Guid.NewGuid().ToString().ToUpper()}",
@@ -221,36 +200,34 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
 
         Host?.PlayAppSound(SoundType.Invoke);
         OnPropertyChanged();
-        await Tree_LaunchTransition();
     }
 
     private void ReManifestButton_OnClick(object sender, RoutedEventArgs e)
     {
+        if (ReManifestButton.Resources["ActionFailedFlyout"] is not Flyout actionFailedFlyout) return;
         switch (InstallVrApplicationManifest())
         {
             // Not found failure
             case -2:
             {
-                ActionFailedFlyout.Content = new TextBlock
+                actionFailedFlyout.Content = new TextBlock
                 {
-                    FontWeight = FontWeights.SemiBold,
-                    Text = Host.RequestLocalizedString("/SettingsPage/ReManifest/Error/NotFound")
+                    FontWeight = FontWeight.SemiBold, Text = Host.RequestLocalizedString("/SettingsPage/ReManifest/Error/NotFound")
                 };
 
-                ActionFailedFlyout.ShowAt(ReManifestButton);
+                actionFailedFlyout.ShowAt(ReManifestButton);
                 break;
             }
 
             // SteamVR failure
             case 1:
             {
-                ActionFailedFlyout.Content = new TextBlock
+                actionFailedFlyout.Content = new TextBlock
                 {
-                    FontWeight = FontWeights.SemiBold,
-                    Text = Host.RequestLocalizedString("/SettingsPage/ReManifest/Error/Other")
+                    FontWeight = FontWeight.SemiBold, Text = Host.RequestLocalizedString("/SettingsPage/ReManifest/Error/Other")
                 };
 
-                ActionFailedFlyout.ShowAt(ReManifestButton);
+                actionFailedFlyout.ShowAt(ReManifestButton);
                 break;
             }
         }
@@ -354,7 +331,7 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         return -2;
     }
 
-    public async void ReRegisterButton_OnClick(SplitButton sender, SplitButtonClickEventArgs args)
+    public async void ReRegisterButton_OnClick(object o, RoutedEventArgs routedEventArgs)
     {
         // Play a sound
         Host?.PlayAppSound(SoundType.Invoke);
@@ -586,6 +563,7 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
 
         // If out local amethyst driver was already registered, skip this step
         if (!isLocalAmethystDriverRegistered)
+        {
             try // Try-Catch it
             {
                 // Register the local Amethyst Driver via OpenVRPaths
@@ -615,6 +593,7 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
                     Host?.RequestLocalizedString("/CrashHandler/ReRegister/FatalRegisterException"), "", "");
                 return; // Hide and exit the handler
             }
+        }
 
         /* 5 */
 
@@ -648,20 +627,23 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
             Host?.RequestLocalizedString("/CrashHandler/ReRegister/Finished"), "", "");
     }
 
-    public event PropertyChangedEventHandler PropertyChanged;
+    public new event PropertyChangedEventHandler PropertyChanged;
 
     private void OnPropertyChanged(string propertyName = null)
     {
+        return; // TODO
+
         _listViewChangeBlock = true;
         var itemBackup = ActionsListView.SelectedItem;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
         if (ActionsListView.Items.Contains(itemBackup))
             ActionsListView.SelectedItem = itemBackup;
+
         _listViewChangeBlock = false;
     }
 
-    private async void AddNewAction_OnClick(object sender, RoutedEventArgs e)
+    private void AddNewAction_OnClick(object sender, RoutedEventArgs e)
     {
         if (!((sender as Button)?.IsLoaded ?? false)) return;
 
@@ -673,21 +655,84 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         IsAddingNewAction = false;
         Host?.PlayAppSound(SoundType.Invoke);
 
-        ActionsListView.ItemContainerTransitions.Clear();
         ReloadActions();
-        ActionsListView.ItemContainerTransitions = [];
 
         if (ActionsListView.Items.Any())
-            ActionsListView.SelectedItem = ActionsListView.Items.Last();
-
-        await Tree_LaunchTransition();
+            ActionsListView.SelectedItem = ActionsListView.Items[^1];
     }
 
-    private void SettingsPage_OnLoaded(object sender, RoutedEventArgs e)
+    private void SettingsPage_OnLoaded(object sender, RoutedEventArgs routedEventArgs)
     {
         PageLoaded = true;
 
         if (StandableToggleSwitch is not null)
-            StandableToggleSwitch.IsOn = IsStandableSupportEnabled;
+            StandableToggleSwitch.IsChecked = IsStandableSupportEnabled;
+    }
+
+    // Strings
+
+    public string SettingsTogglesStandable
+    {
+        get => Host?.RequestLocalizedString("/Settings/Toggles/Standable") ?? string.Empty;
+    }
+
+    public string SettingsTogglesStandableComment
+    {
+        get => Host?.RequestLocalizedString("/Settings/Toggles/Standable/Comment") ?? string.Empty;
+    }
+
+    public string InputActionsButtonsView
+    {
+        get => Host?.RequestLocalizedString("/InputActions/Buttons/View") ?? string.Empty;
+    }
+
+    public string InputActionsPickerOptionsNew
+    {
+        get => Host?.RequestLocalizedString("/InputActions/Picker/Options/New") ?? string.Empty;
+    }
+
+    public string SettingsPagePlaceholdersNewAction
+    {
+        get => Host?.RequestLocalizedString("/SettingsPage/Placeholders/NewAction") ?? string.Empty;
+    }
+
+    public string InputActionsButtonsTest
+    {
+        get => Host?.RequestLocalizedString("/InputActions/Buttons/Test") ?? string.Empty;
+    }
+
+    public string InputActionsButtonsRemove
+    {
+        get => Host?.RequestLocalizedString("/InputActions/Buttons/Remove") ?? string.Empty;
+    }
+
+    public string InputActionsButtonsAdd
+    {
+        get => Host?.RequestLocalizedString("/InputActions/Buttons/Add") ?? string.Empty;
+    }
+
+    public string InputActionsPickerNoSelection
+    {
+        get => Host?.RequestLocalizedString("/InputActions/Picker/NoSelection") ?? string.Empty;
+    }
+
+    public string InputActionsCodeInput
+    {
+        get => Host?.RequestLocalizedString("/InputActions/Code/Input") ?? string.Empty;
+    }
+
+    public string InputActionsCodeTest
+    {
+        get => Host?.RequestLocalizedString("/InputActions/Code/Test") ?? string.Empty;
+    }
+
+    public string SettingsPageButtonsReRegister
+    {
+        get => Host?.RequestLocalizedString("/SettingsPage/Buttons/ReRegister") ?? string.Empty;
+    }
+
+    public string SettingsPageButtonsReManifest
+    {
+        get => Host?.RequestLocalizedString("/SettingsPage/Buttons/ReManifest") ?? string.Empty;
     }
 }

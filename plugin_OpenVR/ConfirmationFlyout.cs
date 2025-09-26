@@ -1,18 +1,12 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License. See LICENSE in the project root for license information.
-
-using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Amethyst.Plugins.Contract;
-using Microsoft.UI.Text;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+using Amethyst.Contract;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Styling;
 
 namespace plugin_OpenVR;
 
@@ -23,9 +17,9 @@ public sealed class ConfirmationFlyout : Flyout
         ConfirmButton = new Button
         {
             Content = confirmButtonText,
-            Visibility = (Visibility)Convert.ToInt32(string.IsNullOrEmpty(confirmButtonText)),
+            IsVisible = string.IsNullOrEmpty(confirmButtonText),
             FontSize = 15,
-            FontWeight = FontWeights.SemiBold,
+            FontWeight = FontWeight.SemiBold,
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
             Height = 33,
@@ -33,15 +27,15 @@ public sealed class ConfirmationFlyout : Flyout
             CornerRadius = new CornerRadius(4),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
-            Style = Application.Current.Resources["AccentButtonStyle"] as Style
+            Classes = { "accent" }
         };
 
         CancelButton = new Button
         {
             Content = cancelButtonText,
-            Visibility = (Visibility)Convert.ToInt32(string.IsNullOrEmpty(cancelButtonText)),
+            IsVisible = string.IsNullOrEmpty(cancelButtonText),
             FontSize = 15,
-            FontWeight = FontWeights.SemiBold,
+            FontWeight = FontWeight.SemiBold,
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
             Height = 33,
@@ -51,28 +45,28 @@ public sealed class ConfirmationFlyout : Flyout
             VerticalAlignment = VerticalAlignment.Stretch
         };
 
-        Content = new Grid
+        Content = new StackPanel()
         {
-            RowDefinitions =
-            {
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Star) },
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }
-            },
+            Orientation = Orientation.Vertical,
             Children =
             {
+                new TextBlock
+                {
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch,
+                    FontSize = 15,
+                    FontWeight = FontWeight.SemiBold,
+                    Text = content
+                },
                 new Grid
                 {
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
                     ColumnDefinitions =
                     {
                         new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
                         new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
                     },
                     Children = { ConfirmButton, CancelButton }
-                },
-                new TextBlock
-                {
-                    HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch,
-                    FontSize = 15, FontWeight = FontWeights.SemiBold, Text = content
                 }
             }
         };
@@ -89,8 +83,6 @@ public sealed class ConfirmationFlyout : Flyout
             Hide(); // Hide the flyout
         };
 
-        Grid.SetRow((Content as Grid)!.Children.First() as Grid, 1);
-
         Grid.SetColumn(ConfirmButton, 0);
         Grid.SetColumn(CancelButton, 1);
     }
@@ -102,7 +94,7 @@ public sealed class ConfirmationFlyout : Flyout
     private static SemaphoreSlim FlyoutExitSemaphore { get; } = new(0);
 
     public static async Task<bool> HandleButtonConfirmationFlyout(
-        UIElement showAtElement, IAmethystHost host,
+        Control showAtElement, IAmethystHost host,
         string content, string confirmButtonText, string cancelButtonText)
     {
         var flyout = new ConfirmationFlyout(content, confirmButtonText, cancelButtonText);
@@ -112,7 +104,7 @@ public sealed class ConfirmationFlyout : Flyout
         flyout.Closing += (_, _) => host?.PlayAppSound(SoundType.Hide);
 
         // Show the confirmation flyout
-        flyout.ShowAt(showAtElement, new FlyoutShowOptions { Placement = FlyoutPlacementMode.Bottom });
+        flyout.ShowAt(showAtElement);
 
         // Wait for the flyout to close
         await FlyoutExitSemaphore.WaitAsync();

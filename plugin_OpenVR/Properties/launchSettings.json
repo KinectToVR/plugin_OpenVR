@@ -2,8 +2,8 @@
   "profiles": {
     "Amethyst": {
       "commandName": "Executable",
-      "executablePath": ".\\Amethyst.exe",
-      "workingDirectory": "..\\..\\..\\Amethyst\\Amethyst\\bin\\x64\\Debug\\net8.0\\win-x64\\"
+      "executablePath": ".\\Amethyst.Desktop.exe",
+      "workingDirectory": "..\\..\\..\\Amethyst.Desktop\\bin\\Debug\\net8.0-windows10.0.17763.0\\"
     }
   }
 }

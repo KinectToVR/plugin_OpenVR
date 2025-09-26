@@ -11,6 +11,7 @@
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<LangVersion>latest</LangVersion>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -21,12 +22,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Amethyst.Plugins.Contract" Version="1.3.0" />
+		<PackageReference Include="Avalonia" Version="11.3.2" />
+    <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.3.0" />
+    <PackageReference Include="FluentAvaloniaUI" Version="2.4.0" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.14.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="System.ComponentModel.Composition" Version="9.0.6" />
 		<PackageReference Include="System.ComponentModel.Composition.Registration" Version="9.0.6" />
-		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4188" />
 		<PackageReference Include="Vanara.PInvoke.Ole" Version="4.1.6" />
 	</ItemGroup>
@@ -35,7 +37,6 @@
 		<Content Include="Assets\**">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
-		<None Remove="Pages\SettingsPage.xaml" />
 		<Compile Include="..\vendor\openvr\headers\openvr_api.cs" Link="vendor\openvr_api.cs">
 			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
 		</Compile>
@@ -89,6 +90,9 @@
 
 	<!--The normal OpenVR driver-->
 	<ItemGroup>
+		<Reference Include="Amethyst.Contract">
+		  <HintPath>..\..\..\Amethyst.Contract\bin\x64\Debug\net8.0\Amethyst.Contract.dll</HintPath>
+		</Reference>
 		<Reference Include="com.driver_Amethyst" Condition="'$(Configuration)'=='Debug'">
 			<HintPath Condition="Exists('bin\Debug\net8.0\win-x64\publish\Driver\Amethyst\bin\win64\')">bin\Debug\net8.0\win-x64\publish\Driver\Amethyst\bin\win64\com.driver_Amethyst.dll</HintPath>
 			<HintPath Condition="Exists('..\x64\Debug\driver_Amethyst\')">..\x64\Debug\driver_Amethyst\com.driver_Amethyst.dll</HintPath>
@@ -116,19 +120,4 @@
 			<!--<HintPath>com.driver_00Amethyst.dll</HintPath>-->
 		</Reference>
 	</ItemGroup>
-
-	<ItemGroup>
-		<Page Update="Pages\SettingsPage.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</Page>
-	</ItemGroup>
-
-	<Target Name="XamlCopy" AfterTargets="Publish">
-		<ItemGroup>
-			<_CustomFiles1 Include="$(ProjectDir)$(OutDir)$(ProjectName)\Pages\*.*" />
-			<_CustomFiles2 Include="$(ProjectDir)$(OutDir)$(ProjectName).pri" />
-		</ItemGroup>
-		<Copy SourceFiles="@(_CustomFiles1)" DestinationFolder="$(PublishDir)\Pages" />
-		<Copy SourceFiles="@(_CustomFiles2)" DestinationFiles="$(PublishDir)\resources.pri" />
-	</Target>
 </Project>
