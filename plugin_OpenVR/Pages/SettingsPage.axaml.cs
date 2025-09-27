@@ -5,16 +5,14 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using Windows.ApplicationModel;
-using Windows.Data.Json;
-using Windows.Storage;
 using Amethyst.Contract;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using plugin_OpenVR.Utils;
 using Valve.VR;
 
@@ -150,11 +148,18 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
 
     private async void ActionTestButton_OnClick(object o, RoutedEventArgs routedEventArgs)
     {
-        if (!TestResultsBox.IsLoaded || TreeSelectedAction is null) return;
-        TestResultsBox.Text = await TreeSelectedAction.Invoke(null);
+        try
+        {
+            if (!TestResultsBox.IsLoaded || TreeSelectedAction is null) return;
+            TestResultsBox.Text = await TreeSelectedAction.Invoke(null);
+        }
+        catch (Exception)
+        {
+            // ignored
+        }
     }
 
-    private async void RemoveAction_OnClick(object sender, RoutedEventArgs e)
+    private void RemoveAction_OnClick(object sender, RoutedEventArgs e)
     {
         if (!TestResultsBox.IsLoaded || TreeSelectedAction is null) return;
         DataParent.VrInput.RegisteredActions.Actions.Remove(TreeSelectedAction);
@@ -297,8 +302,7 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
 
                 try
                 {
-                    manifestJson.applications.FirstOrDefault()!.launch_type =
-                        Package.Current is not null ? "url" : "binary"; // Modify the manifest
+                    manifestJson.applications.FirstOrDefault()!.launch_type = "binary"; // Modify the manifest
                 }
                 catch (InvalidOperationException e)
                 {
@@ -428,8 +432,8 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         // Copy all driver files to Amethyst's local data folder
         new DirectoryInfo(Path.Join(Directory.GetParent(
                 Assembly.GetExecutingAssembly().Location)!.FullName, "Driver", DataParent.DriverFolderName))
-            .CopyToFolder((await (await StorageFolder.GetFolderFromPathAsync(Host!.PathHelper.LocalFolder.FullName))
-                .CreateFolderAsync(DataParent.DriverFolderName, CreationCollisionOption.OpenIfExists)).Path);
+            .CopyToFolder((await (await Host!.StorageProvider.TryGetFolderFromPathAsync(
+                new Uri(Host!.PathHelper.LocalFolder.FullName)))!.CreateFolderAsync(DataParent.DriverFolderName))!.Path.AbsolutePath);
 
         // Assume it's done now and get the path
         var localAmethystDriverPath = Path.Join(Host.PathHelper.LocalFolder.FullName, DataParent.DriverFolderName);
@@ -601,16 +605,12 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         try
         {
             // Read the vr settings
-            var steamVrSettings = JsonObject.Parse(await File.ReadAllTextAsync(resultPaths.Path.VrSettingsPath));
+            var steamVrSettings = JObject.Parse(await File.ReadAllTextAsync(resultPaths.Path.VrSettingsPath));
 
             // Enable & unblock the Amethyst Driver
             steamVrSettings.Remove($"driver_{SteamVR.Instance.DriverFolderName}");
-            steamVrSettings.Add($"driver_{SteamVR.Instance.DriverFolderName}",
-                new JsonObject
-                {
-                    new KeyValuePair<string, IJsonValue>("enable", JsonValue.CreateBooleanValue(true)),
-                    new KeyValuePair<string, IJsonValue>("blocked_by_safe_mode", JsonValue.CreateBooleanValue(false))
-                });
+            steamVrSettings.Add($"driver_{SteamVR.Instance.DriverFolderName}", JObject.FromObject(
+                new { enable = true, blocked_by_safe_mode = false }));
 
             await File.WriteAllTextAsync(resultPaths.Path.VrSettingsPath, steamVrSettings.ToString());
         }

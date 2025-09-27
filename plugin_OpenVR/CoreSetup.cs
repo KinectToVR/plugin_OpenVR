@@ -6,12 +6,11 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.Data.Json;
 using Amethyst.Contract;
 using plugin_OpenVR.Utils;
-using Windows.Storage;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Newtonsoft.Json.Linq;
 
 namespace plugin_OpenVR;
 
@@ -136,7 +135,7 @@ internal class VrDriver : IDependency
 
         try
         {
-            await PathsHandler.Setup();
+            await PathsHandler.Setup(Host);
             SteamVR.Instance?.Shutdown();
         }
         catch (Exception)
@@ -170,11 +169,10 @@ internal class VrDriver : IDependency
         // Copy all driver files to Amethyst's local data folder
         new DirectoryInfo(Path.Join(Directory.GetParent(
                 Assembly.GetExecutingAssembly().Location)!.FullName, "Driver", "Amethyst"))
-            .CopyToFolder((await PathsHandler.LocalFolder.CreateFolderAsync(
-                "Amethyst", CreationCollisionOption.OpenIfExists)).Path);
+            .CopyToFolder((await PathsHandler.LocalFolder.CreateFolderAsync("Amethyst"))!.Path.AbsolutePath);
 
         // Assume it's done now and get the path
-        var localAmethystDriverPath = Path.Join(PathsHandler.LocalFolder.Path, "Amethyst");
+        var localAmethystDriverPath = Path.Join(PathsHandler.LocalFolder.Path.AbsolutePath, "Amethyst");
 
         // If there's none (still), cry about it and abort
         if (string.IsNullOrEmpty(localAmethystDriverPath) || !Directory.Exists(localAmethystDriverPath))
@@ -329,16 +327,12 @@ internal class VrDriver : IDependency
         {
             // Read the vr settings
             var steamVrSettings =
-                JsonObject.Parse(await File.ReadAllTextAsync(resultPaths.Path.VrSettingsPath, cancellationToken));
+                JObject.Parse(await File.ReadAllTextAsync(resultPaths.Path.VrSettingsPath, cancellationToken));
 
             // Enable & unblock the Amethyst Driver
             steamVrSettings.Remove("driver_Amethyst");
-            steamVrSettings.Add("driver_Amethyst",
-                new JsonObject
-                {
-                    new KeyValuePair<string, IJsonValue>("enable", JsonValue.CreateBooleanValue(true)),
-                    new KeyValuePair<string, IJsonValue>("blocked_by_safe_mode", JsonValue.CreateBooleanValue(false))
-                });
+            steamVrSettings.Add("driver_Amethyst", JObject.FromObject(
+                new { enable = true, blocked_by_safe_mode = false }));
 
             await File.WriteAllTextAsync(resultPaths.Path.VrSettingsPath, steamVrSettings.ToString(),
                 cancellationToken);
@@ -404,7 +398,7 @@ internal class NullDriver : IDependency
 
         try
         {
-            await PathsHandler.Setup();
+            await PathsHandler.Setup(Host);
             SteamVR.Instance?.Shutdown();
         }
         catch (Exception)
@@ -439,35 +433,29 @@ internal class NullDriver : IDependency
         {
             // Read the vr settings
             var steamVrSettings =
-                JsonObject.Parse(await File.ReadAllTextAsync(resultPaths.Path.VrSettingsPath, cancellationToken));
+                JObject.Parse(await File.ReadAllTextAsync(resultPaths.Path.VrSettingsPath, cancellationToken));
 
             // Enable & unblock the Null Driver
             steamVrSettings.Remove("driver_null");
-            steamVrSettings.Add("driver_null",
-                new JsonObject
+            steamVrSettings.Add("driver_null", JObject.FromObject(
+                new
                 {
-                    new KeyValuePair<string, IJsonValue>("displayFrequency", JsonValue.CreateNumberValue(60)),
-                    new KeyValuePair<string, IJsonValue>("enable", JsonValue.CreateBooleanValue(true)),
-                    new KeyValuePair<string, IJsonValue>("id", JsonValue.CreateStringValue("Null Driver")),
-                    new KeyValuePair<string, IJsonValue>("renderHeight", JsonValue.CreateNumberValue(0)),
-                    new KeyValuePair<string, IJsonValue>("renderWidth", JsonValue.CreateNumberValue(0)),
-                    new KeyValuePair<string, IJsonValue>("secondsFromVsyncToPhotons", JsonValue.CreateNumberValue(0.10000000149011612)),
-                    new KeyValuePair<string, IJsonValue>("serialNumber", JsonValue.CreateStringValue("Null 4711")),
-                    new KeyValuePair<string, IJsonValue>("windowHeight", JsonValue.CreateNumberValue(0)),
-                    new KeyValuePair<string, IJsonValue>("windowWidth", JsonValue.CreateNumberValue(0)),
-                    new KeyValuePair<string, IJsonValue>("windowX", JsonValue.CreateNumberValue(0)),
-                    new KeyValuePair<string, IJsonValue>("windowY", JsonValue.CreateNumberValue(0))
-                });
+                    displayFrequency = 60,
+                    enable = true,
+                    id = "Null Driver",
+                    renderHeight = 0,
+                    renderWidth = 0,
+                    secondsFromVsyncToPhotons = 0.10000000149011612,
+                    serialNumber = "Null 4711",
+                    windowHeight = 0,
+                    windowWidth = 0,
+                    windowX = 0,
+                    windowY = 0
+                }));
 
             steamVrSettings.Remove("steamvr");
-            steamVrSettings.Add("steamvr",
-                new JsonObject
-                {
-                    new KeyValuePair<string, IJsonValue>("activateMultipleDrivers", JsonValue.CreateBooleanValue(true)),
-                    new KeyValuePair<string, IJsonValue>("enableHomeApp", JsonValue.CreateBooleanValue(false)),
-                    new KeyValuePair<string, IJsonValue>("forcedDriver", JsonValue.CreateStringValue("null")),
-                    new KeyValuePair<string, IJsonValue>("mirrorViewGeometry", JsonValue.CreateStringValue("0 0 960 540"))
-                });
+            steamVrSettings.Add("steamvr", JObject.FromObject(
+                new { activateMultipleDrivers = true, enableHomeApp = false, forcedDriver = "null", mirrorViewGeometry = "0 0 960 540" }));
 
             await File.WriteAllTextAsync(resultPaths.Path.VrSettingsPath, steamVrSettings.ToString(),
                 cancellationToken);

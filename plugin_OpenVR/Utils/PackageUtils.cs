@@ -1,49 +1,28 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
-using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
-using Windows.ApplicationModel;
-using Windows.Management.Deployment;
-using Windows.Storage;
+using Amethyst.Contract;
+using Avalonia.Platform.Storage;
 
 namespace plugin_OpenVR.Utils;
 
 public static class PathsHandler
 {
-    public static async Task Setup()
+    public static async Task Setup(IDependencyInstaller.ILocalizationHost host)
     {
-        if (IsAmethystPackaged) return;
+        var root = await host.StorageProvider.TryGetFolderFromPathAsync(
+            new Uri(Path.Join(ProgramLocation.DirectoryName!)));
 
-        var root = await StorageFolder.GetFolderFromPathAsync(
-            Path.Join(ProgramLocation.DirectoryName!));
-
-        LocalFolderUnpackaged = await (await root
-                .CreateFolderAsync("AppData", CreationCollisionOption.OpenIfExists))
-            .CreateFolderAsync("LocalState", CreationCollisionOption.OpenIfExists);
-    }
-
-    public static bool IsAmethystPackaged
-    {
-        get
-        {
-            try
-            {
-                return Package.Current is not null;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
+        LocalFolderUnpackaged = await (await root!
+            .CreateFolderAsync("AppData"))!.CreateFolderAsync("LocalState");
     }
 
     public static FileInfo ProgramLocation => new(Assembly.GetExecutingAssembly().Location);
 
-    public static StorageFolder LocalFolder => IsAmethystPackaged ? ApplicationData.Current.LocalFolder : LocalFolderUnpackaged;
+    public static IStorageFolder LocalFolder => LocalFolderUnpackaged;
 
-    public static StorageFolder LocalFolderUnpackaged { get; set; } // Assigned on Setup()
+    public static IStorageFolder LocalFolderUnpackaged { get; set; } // Assigned on Setup()
 }
 
 public static class StorageExtensions

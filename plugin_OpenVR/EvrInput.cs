@@ -13,7 +13,6 @@ using Microsoft.CodeAnalysis.Scripting;
 using Newtonsoft.Json;
 using plugin_OpenVR.Utils;
 using Valve.VR;
-using Windows.Storage;
 
 namespace plugin_OpenVR;
 

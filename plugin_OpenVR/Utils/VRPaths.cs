@@ -10,9 +10,16 @@ namespace plugin_OpenVR.Utils;
 [SuppressMessage("ReSharper", "CollectionNeverUpdated.Global")]
 internal class OpenVrPaths
 {
+#if WINDOWS
     public static readonly string Path =
         Environment.ExpandEnvironmentVariables(System.IO.Path.Combine(
             "%LocalAppData%", "openvr", "openvrpaths.vrpath"));
+#else
+    public static readonly string Path =
+        System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".config", "openvr", "openvrpaths.vrpath");
+#endif
 
     public static OpenVrPaths Read()
     {
@@ -53,6 +60,7 @@ internal class OpenVrPaths
 #pragma warning restore 0649
 }
 
+#if WINDOWS
 public static class PathUtils
 {
     public static string GetShortName(string sLongFileName)
@@ -80,3 +88,17 @@ public static class PathUtils
         }
     }
 }
+#else
+public static class PathUtils
+{
+    public static string GetShortName(string sLongFileName)
+    {
+        return sLongFileName;
+    }
+
+    public static string ShortPath(this string path)
+    {
+        return path;
+    }
+}
+#endif
