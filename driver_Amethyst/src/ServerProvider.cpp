@@ -322,7 +322,16 @@ namespace amethyst::driver::implementation
     };
 }
 
-extern "C" __declspec(dllexport) void* HmdDriverFactory(const char* pInterfaceName, int* pReturnCode)
+#if defined(_MSC_VER)
+    #define EXPORT __declspec(dllexport)
+#elif defined(__GNUC__)
+    #define EXPORT __attribute__((visibility("default")))
+#else
+    #define EXPORT
+    #pragma warning Unknown dynamic link import/export semantics.
+#endif
+
+extern "C" EXPORT void* HmdDriverFactory(const char* pInterfaceName, int* pReturnCode)
 {
     static amethyst::driver::implementation::ServerProvider k2_server_provider;
     static amethyst::driver::implementation::DriverWatchdog k2_watchdog_driver;
@@ -340,4 +349,6 @@ extern "C" __declspec(dllexport) void* HmdDriverFactory(const char* pInterfaceNa
 
     if (pReturnCode)
         *pReturnCode = vr::VRInitError_Init_InterfaceNotFound;
+
+    return nullptr;
 }

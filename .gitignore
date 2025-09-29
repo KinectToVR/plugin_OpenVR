@@ -346,3 +346,7 @@ healthchecksdb
 MigrationBackup/
 
 out/
+
+.idea/
+
+.vscode/

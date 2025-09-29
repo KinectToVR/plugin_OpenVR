@@ -37,9 +37,8 @@ endif()
 add_library(${DRIVER_TARGET_NAME} SHARED ${driver_HDR} ${driver_SRC} ${driver_IDL})
 target_include_directories(${DRIVER_TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET ${DRIVER_TARGET_NAME} PROPERTY CXX_STANDARD 20)
-endif()
+set_property(TARGET ${DRIVER_TARGET_NAME} PROPERTY CXX_STANDARD 20)
+set_property(TARGET ${DRIVER_TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 
 # ----------------------- MinHook support ----------------------
 if (WIN32 AND USE_HOOKS)
@@ -69,11 +68,25 @@ elseif (DEFINED CAPNP_EXECUTABLE)
     set(CAPNP_COMPILER "${CAPNP_EXECUTABLE}")
 endif()
 
+# Set up the capnp compile command with PATH modification on Linux
+if(UNIX AND NOT APPLE)
+    if (TARGET CapnProto::capnp_tool)
+        set(CAPNP_COMPILE_COMMAND ${CMAKE_COMMAND} -E env "PATH=$<TARGET_FILE_DIR:CapnProto::capnp_tool>:$ENV{PATH}" ${CAPNP_COMPILER} compile -o c++:. "driver.capnp")
+    elseif (DEFINED CAPNP_EXECUTABLE)
+        get_filename_component(CAPNP_DIR "${CAPNP_EXECUTABLE}" DIRECTORY)
+        set(CAPNP_COMPILE_COMMAND ${CMAKE_COMMAND} -E env "PATH=${CAPNP_DIR}:$ENV{PATH}" ${CAPNP_COMPILER} compile -o c++:. "driver.capnp")
+    else()
+        set(CAPNP_COMPILE_COMMAND ${CAPNP_COMPILER} compile -o c++:. "driver.capnp")
+    endif()
+else()
+    set(CAPNP_COMPILE_COMMAND ${CAPNP_COMPILER} compile -o c++:. "driver.capnp")
+endif()
+
 add_custom_command(
     OUTPUT "${CAPNP_GEN_HDR}" "${CAPNP_GEN_SRC}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CAPNP_OUT_DIR}"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CAPNP_SCHEMA}" "${CAPNP_SCHEMA_COPY}"
-    COMMAND ${CAPNP_COMPILER} compile -o c++:. "driver.capnp"
+    COMMAND ${CAPNP_COMPILE_COMMAND}
     DEPENDS "${CAPNP_SCHEMA}"
     WORKING_DIRECTORY "${CAPNP_OUT_DIR}"
     COMMENT "Generating Cap'n Proto C++ from driver.capnp"
@@ -96,13 +109,8 @@ set(OPENVR_ROOT "${CMAKE_CURRENT_LIST_DIR}/../vendor/openvr")
 set(OPENVR_INCLUDE_DIR "${OPENVR_ROOT}/headers")
 
 if (WIN32)
-    if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(OPENVR_IMPLIB   "${OPENVR_ROOT}/lib/win64/openvr_api.lib")
-        set(OPENVR_RUNTIME  "${OPENVR_ROOT}/bin/win64/openvr_api.dll")
-    else()
-        set(OPENVR_IMPLIB   "${OPENVR_ROOT}/lib/win32/openvr_api.lib")
-        set(OPENVR_RUNTIME  "${OPENVR_ROOT}/bin/win32/openvr_api.dll")
-    endif()
+    set(OPENVR_IMPLIB   "${OPENVR_ROOT}/lib/win64/openvr_api.lib")
+    set(OPENVR_RUNTIME  "${OPENVR_ROOT}/bin/win64/openvr_api.dll")
     add_library(openvr::openvr SHARED IMPORTED)
     set_target_properties(openvr::openvr PROPERTIES
         IMPORTED_IMPLIB "${OPENVR_IMPLIB}"
@@ -110,11 +118,7 @@ if (WIN32)
         INTERFACE_INCLUDE_DIRECTORIES "${OPENVR_INCLUDE_DIR}"
     )
 elseif(UNIX AND NOT APPLE)
-    if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(OPENVR_RUNTIME "${OPENVR_ROOT}/lib/linux64/libopenvr_api.so")
-    else()
-        set(OPENVR_RUNTIME "${OPENVR_ROOT}/lib/linux32/libopenvr_api.so")
-    endif()
+    set(OPENVR_RUNTIME "${OPENVR_ROOT}/lib/linux64/libopenvr_api.so")
     add_library(openvr::openvr SHARED IMPORTED)
     set_target_properties(openvr::openvr PROPERTIES
         IMPORTED_LOCATION "${OPENVR_RUNTIME}"
@@ -147,13 +151,10 @@ else()
 endif()
 
 if (WIN32)
-    if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(PACK_BIN_DIR "${PACK_ROOT}/bin/win64")
-    else()
-        set(PACK_BIN_DIR "${PACK_ROOT}/bin/win32")
-    endif()
+    set(PACK_BIN_DIR "${PACK_ROOT}/bin/win64")
+elseif(UNIX AND NOT APPLE)
+    set(PACK_BIN_DIR "${PACK_ROOT}/bin/linux64")
 else()
-    # Default bin directory if non-Windows
     set(PACK_BIN_DIR "${PACK_ROOT}/bin")
 endif()
 
@@ -165,9 +166,31 @@ endif()
 
 add_custom_command(TARGET ${DRIVER_TARGET_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${PACK_BIN_DIR}"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:${DRIVER_TARGET_NAME}>" "${PACK_BIN_DIR}"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MANIFEST_SRC}" "${PACK_ROOT}/driver.vrdrivermanifest"
     COMMENT "Packing driver files to ${PACK_ROOT}"
     VERBATIM
 )
+
+if(UNIX AND NOT APPLE)
+    add_custom_command(TARGET ${DRIVER_TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+            "$<TARGET_FILE:${DRIVER_TARGET_NAME}>" 
+            "${PACK_BIN_DIR}/$<TARGET_FILE_BASE_NAME:${DRIVER_TARGET_NAME}>$<TARGET_FILE_SUFFIX:${DRIVER_TARGET_NAME}>"
+        COMMENT "Copying driver library without lib prefix"
+        VERBATIM
+    )
+else()
+    add_custom_command(TARGET ${DRIVER_TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:${DRIVER_TARGET_NAME}>" "${PACK_BIN_DIR}"
+        COMMENT "Copying driver library"
+        VERBATIM
+    )
+endif()
+
+
+if (TARGET openvr::openvr)
+    add_custom_command(TARGET ${DRIVER_TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${OPENVR_RUNTIME}" "${PACK_BIN_DIR}"
+        VERBATIM)
+endif()
 # --------------------------------------------------------------

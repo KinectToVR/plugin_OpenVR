@@ -42,3 +42,5 @@ The project templates already contain most of the needed documentation,
 although please feel free to check out [the official wesite](https://docs.k2vr.tech/) for more docs sometime.
 
 The build and publishment workflow is the same as in this repo (excluding vendor deps).  
+
+capnp: autoreconf -i && ./configure && make -j6 check

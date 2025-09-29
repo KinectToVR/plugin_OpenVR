@@ -2,6 +2,7 @@
 #pragma once
 #include <filesystem>
 #include <map>
+#include <format>
 #include <openvr_driver.h>
 #include <driver.capnp.h>
 

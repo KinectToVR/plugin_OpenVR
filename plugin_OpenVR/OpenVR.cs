@@ -807,7 +807,7 @@ public class SteamVR : IServiceEndpoint
             await Dispatcher.InvokeAsync(() =>
             {
                 Host?.Log("Searching for the driver service...");
-                TcpClient = new TcpRpcClient("localhost", target);
+                TcpClient = new TcpRpcClient("127.0.0.1", target);
                 //MidlayerExtensions.AddBuffering(client);
 
                 TcpClient.WhenConnected!.Wait(1000);

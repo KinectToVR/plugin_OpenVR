@@ -4,3 +4,6 @@
 [submodule "vendor/minhook"]
 	path = vendor/minhook
 	url = https://github.com/KimihikoAkayasaki/minhook
+[submodule "vendor/capnp"]
+	path = vendor/capnp
+	url = https://github.com/capnproto/capnproto
