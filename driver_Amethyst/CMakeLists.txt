@@ -34,12 +34,6 @@ if(MSVC)
     )
 endif()
 
-add_library(${DRIVER_TARGET_NAME} SHARED ${driver_HDR} ${driver_SRC} ${driver_IDL})
-target_include_directories(${DRIVER_TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-
-set_property(TARGET ${DRIVER_TARGET_NAME} PROPERTY CXX_STANDARD 20)
-set_property(TARGET ${DRIVER_TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
-
 # ----------------------- MinHook support ----------------------
 if (WIN32 AND USE_HOOKS)
     find_package(minhook CONFIG REQUIRED)
@@ -49,9 +43,6 @@ endif()
 
 # ----------------------- Cap'n Proto --------------------------
 find_package(CapnProto CONFIG REQUIRED)
-
-# Link libraries
-target_link_libraries(${DRIVER_TARGET_NAME} PRIVATE CapnProto::capnp CapnProto::capnp-rpc CapnProto::kj CapnProto::kj-async)
 
 # Auto-generate sources from rpc/driver.capnp
 set(CAPNP_SCHEMA "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/k2vr/driver.capnp")
@@ -93,13 +84,6 @@ add_custom_command(
     VERBATIM
 )
 
-# Add generated sources to the target and include directory
-add_custom_target(capnp_generated ALL DEPENDS "${CAPNP_GEN_HDR}" "${CAPNP_GEN_SRC}")
-add_dependencies(${DRIVER_TARGET_NAME} capnp_generated)
-
-target_sources(${DRIVER_TARGET_NAME} PRIVATE "${CAPNP_GEN_SRC}" "${CAPNP_GEN_HDR}")
-target_include_directories(${DRIVER_TARGET_NAME} PRIVATE "${CAPNP_OUT_DIR}")
-
 # Group generated files for IDEs
 source_group(TREE "${CAPNP_OUT_DIR}" PREFIX "Generated Files" FILES "${CAPNP_GEN_SRC}" "${CAPNP_GEN_HDR}")
 # --------------------------------------------------------------
@@ -109,36 +93,41 @@ set(OPENVR_ROOT "${CMAKE_CURRENT_LIST_DIR}/../vendor/openvr")
 set(OPENVR_INCLUDE_DIR "${OPENVR_ROOT}/headers")
 
 if (WIN32)
-    set(OPENVR_IMPLIB   "${OPENVR_ROOT}/lib/win64/openvr_api.lib")
-    set(OPENVR_RUNTIME  "${OPENVR_ROOT}/bin/win64/openvr_api.dll")
-    add_library(openvr::openvr SHARED IMPORTED)
-    set_target_properties(openvr::openvr PROPERTIES
-        IMPORTED_IMPLIB "${OPENVR_IMPLIB}"
-        IMPORTED_LOCATION "${OPENVR_RUNTIME}"
-        INTERFACE_INCLUDE_DIRECTORIES "${OPENVR_INCLUDE_DIR}"
-    )
+    link_directories("${OPENVR_ROOT}/lib/win64")
+    link_directories("${OPENVR_ROOT}/bin/win64")
 elseif(UNIX AND NOT APPLE)
-    set(OPENVR_RUNTIME "${OPENVR_ROOT}/lib/linux64/libopenvr_api.so")
-    add_library(openvr::openvr SHARED IMPORTED)
-    set_target_properties(openvr::openvr PROPERTIES
-        IMPORTED_LOCATION "${OPENVR_RUNTIME}"
-        INTERFACE_INCLUDE_DIRECTORIES "${OPENVR_INCLUDE_DIR}"
-    )
+    link_directories("${OPENVR_ROOT}/lib/linux64")
 endif()
+# --------------------------------------------------------------
 
-if (TARGET openvr::openvr)
-    target_link_libraries(${DRIVER_TARGET_NAME} PRIVATE openvr::openvr)
-    target_include_directories(${DRIVER_TARGET_NAME} PRIVATE "${OPENVR_INCLUDE_DIR}")
+# -----------------------Main-----------------------------------
+add_library(${DRIVER_TARGET_NAME} SHARED ${driver_HDR} ${driver_SRC} ${driver_IDL})
+target_include_directories(${DRIVER_TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-    add_custom_command(TARGET ${DRIVER_TARGET_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${OPENVR_RUNTIME}" "$<TARGET_FILE_DIR:${DRIVER_TARGET_NAME}>"
-        VERBATIM)
+set_property(TARGET ${DRIVER_TARGET_NAME} PROPERTY CXX_STANDARD 20)
+set_property(TARGET ${DRIVER_TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
+# --------------------------------------------------------------
 
-    if (UNIX AND NOT APPLE)
-        set_target_properties(${DRIVER_TARGET_NAME} PROPERTIES
-            BUILD_RPATH "$ORIGIN"
-            INSTALL_RPATH "$ORIGIN")
-    endif()
+# ----------------------- Cap'n Proto --------------------------
+# Link libraries
+target_link_libraries(${DRIVER_TARGET_NAME} PRIVATE CapnProto::capnp CapnProto::capnp-rpc CapnProto::kj CapnProto::kj-async)
+
+# Add generated sources to the target and include directory
+add_custom_target(capnp_generated ALL DEPENDS "${CAPNP_GEN_HDR}" "${CAPNP_GEN_SRC}")
+add_dependencies(${DRIVER_TARGET_NAME} capnp_generated)
+
+target_sources(${DRIVER_TARGET_NAME} PRIVATE "${CAPNP_GEN_SRC}" "${CAPNP_GEN_HDR}")
+target_include_directories(${DRIVER_TARGET_NAME} PRIVATE "${CAPNP_OUT_DIR}")
+# --------------------------------------------------------------
+
+# ----------------------- OpenVR (vendor) ----------------------
+target_link_libraries(${DRIVER_TARGET_NAME} PRIVATE openvr_api)
+target_include_directories(${DRIVER_TARGET_NAME} PRIVATE "${OPENVR_INCLUDE_DIR}")
+
+if (UNIX AND NOT APPLE)
+    set_target_properties(${DRIVER_TARGET_NAME} PROPERTIES
+        BUILD_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN")
 endif()
 # --------------------------------------------------------------
 
@@ -186,11 +175,5 @@ else()
         VERBATIM
     )
 endif()
-
-
-if (TARGET openvr::openvr)
-    add_custom_command(TARGET ${DRIVER_TARGET_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${OPENVR_RUNTIME}" "${PACK_BIN_DIR}"
-        VERBATIM)
-endif()
 # --------------------------------------------------------------
+
