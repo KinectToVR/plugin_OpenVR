@@ -3,50 +3,151 @@ name: Check-Build
 on: [push]
 
 jobs:
-  build:
-
-    runs-on: windows-latest
+  build-driver:
+    name: Build C++ driver (${{ matrix.os }} • ${{ matrix.preset }})
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        dotnet-version: ['7.0.203' ]
+        include:
+          # Windows release presets
+          - os: windows-latest
+            preset: x64-release
+            triplet: x64-windows-static
+            vcpkgPkgs: "capnproto minhook"
+            use_hooks: "ON"
+          - os: windows-latest
+            preset: x64-release-nohooks
+            triplet: x64-windows-static
+            vcpkgPkgs: "capnproto"
+            use_hooks: "OFF"
+          # Linux release preset
+          - os: ubuntu-latest
+            preset: linux-x64-release
+            triplet: x64-linux
+            vcpkgPkgs: "capnproto"
+            use_hooks: "OFF"
 
     steps:
-      - uses: actions/checkout@v3
-        with: 
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
           submodules: true
 
-      - uses: actions/setup-dotnet@v3
+      - name: Set up Ninja (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+
+      - name: Set up Ninja (cross-platform)
+        uses: seanmiddleditch/gha-setup-ninja@v4
+
+      - name: Set up MSVC developer command prompt (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Set up CMake
+        uses: lukka/get-cmake@latest
+
+      - name: Set up vcpkg
+        id: runvcpkg
+        uses: lukka/run-vcpkg@v11
         with:
-          dotnet-version: '7.0.203'
-          
-      - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v1.1
+          vcpkgGitCommitId: 0d9d4684352ba8de70bdf251c6fc9a3c464fa12b
 
-      - name: Build the OpenVR Emulation driver
+      - name: Install vcpkg packages (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-            nuget restore
-            msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win-x64 /t:driver_00Amethyst
-        
-      - name: Build the OpenVR driver
+          $triplet = '${{ matrix.triplet }}'
+          $pkgsRaw = '${{ matrix.vcpkgPkgs }}'
+          $pkgs = $pkgsRaw -split '\s+' | Where-Object { $_ -and $_.Trim().Length -gt 0 }
+          [string[]]$vcpkgArgs = @()
+          foreach ($p in $pkgs) { $vcpkgArgs += ("$($p.Trim()):$triplet") }
+          if ($vcpkgArgs.Count -eq 0) { Write-Host 'No vcpkg packages to install.' } else { & "$env:VCPKG_ROOT\vcpkg.exe" install @vcpkgArgs }
+
+      - name: Install vcpkg packages (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
         run: |
-            nuget restore
-            msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win-x64 /t:driver_Amethyst
-        
+          set -euo pipefail
+          triplet='${{ matrix.triplet }}'
+          pkgs='${{ matrix.vcpkgPkgs }}'
+          args=""
+          for p in $pkgs; do args+="$p:$triplet "; done
+          "$VCPKG_ROOT/vcpkg" install $args
+
+      - name: Configure (CMake preset)
+        working-directory: ${{ github.workspace }}
+        run: >-
+          cmake
+          --preset "${{ matrix.preset }}"
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
+          -DUSE_HOOKS=${{ matrix.use_hooks }}
+
+      - name: Build (CMake preset)
+        working-directory: ${{ github.workspace }}
+        run: cmake --build --preset "${{ matrix.preset }}" --parallel
+
+      - name: Upload driver pack artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: driver_${{ matrix.preset }}_${{ runner.os }}
+          path: |
+            out/build/${{ matrix.preset }}/driver_Amethyst/Pack/**
+          if-no-files-found: error
+
+  package-all:
+    name: Package plugin + all drivers (single zip)
+    needs: build-driver
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Download all driver artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: driver_*
+          path: drivers
+          merge-multiple: true
+
+      - name: Merge driver outputs into out/build
+        shell: pwsh
+        run: |
+          $presets = @('x64-release','x64-release-nohooks','linux-x64-release')
+          foreach ($p in $presets) {
+            $src = Join-Path 'drivers' 'out/build' $p
+            if (Test-Path $src) {
+              $dst = Join-Path 'out/build' $p
+              New-Item -ItemType Directory -Force -Path $dst | Out-Null
+              Copy-Item -Recurse -Force (Join-Path $src '*') $dst
+            }
+          }
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.0.x'
+
       - name: Restore and build (publish)
-        run: msbuild /restore /p:Platform=x64 /p:PlatformTarget=x64 /p:Configuration=Release /p:RuntimeIdentifier=win-x64 /t:plugin_OpenVR:Publish /p:PublishProfile=plugin_OpenVR\Properties\PublishProfiles\FolderProfile.pubxml
-
+        run: dotnet publish /p:Configuration=Release /p:TargetFramework=net8.0 /p:PublishProfile=FolderProfile
+      
       - name: Pack published files
         run: |
-          cd plugin_OpenVR/bin/Release/net8.0/win-x64/publish
+          cd plugin_OpenVR/bin/Release/publish
           7z a plugin_OpenVR.zip *
-        
+          
       - name: Upload plugin artifact
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
+          automatic_release_tag: "ame2-latest"
           prerelease: true
           title: "plugin_OpenVR Build Artifact"
           files: |
-            ./plugin_OpenVR/bin/Release/net8.0/win-x64/publish/plugin_OpenVR.zip
+            ./plugin_OpenVR/bin/Release/publish/plugin_OpenVR.zip
             ./external/manifest.json

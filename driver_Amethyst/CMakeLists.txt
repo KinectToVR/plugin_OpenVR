@@ -37,7 +37,7 @@ endif()
 # ----------------------- MinHook support ----------------------
 if (WIN32 AND USE_HOOKS)
     find_package(minhook CONFIG REQUIRED)
-    target_link_libraries(${DRIVER_TARGET_NAME} PRIVATE minhook::minhook)
+    set(MINHOOK_LIB minhook::minhook)
 endif()
 # --------------------------------------------------------------
 
@@ -123,6 +123,11 @@ target_include_directories(${DRIVER_TARGET_NAME} PRIVATE "${CAPNP_OUT_DIR}")
 # ----------------------- OpenVR (vendor) ----------------------
 target_link_libraries(${DRIVER_TARGET_NAME} PRIVATE openvr_api)
 target_include_directories(${DRIVER_TARGET_NAME} PRIVATE "${OPENVR_INCLUDE_DIR}")
+
+# Link MinHook after target exists
+if (WIN32 AND USE_HOOKS)
+    target_link_libraries(${DRIVER_TARGET_NAME} PRIVATE ${MINHOOK_LIB})
+endif()
 
 if (UNIX AND NOT APPLE)
     set_target_properties(${DRIVER_TARGET_NAME} PROPERTIES
