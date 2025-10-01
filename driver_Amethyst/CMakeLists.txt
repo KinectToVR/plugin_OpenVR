@@ -14,8 +14,8 @@ file(GLOB driver_SRC "src/*.cpp")
 file(GLOB driver_IDL "include/*.idl")
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "Header Files" FILES ${driver_HDR})
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src"     PREFIX "Source Files" FILES ${driver_SRC})
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "IDL Files"    FILES ${driver_IDL})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Source Files" FILES ${driver_SRC})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "IDL Files" FILES ${driver_IDL})
 
 set_source_files_properties(${driver_IDL} PROPERTIES HEADER_FILE_ONLY TRUE)
 
@@ -35,10 +35,11 @@ if(MSVC)
 endif()
 
 # ----------------------- MinHook support ----------------------
-if (WIN32 AND USE_HOOKS)
+if(WIN32 AND USE_HOOKS)
     find_package(minhook CONFIG REQUIRED)
     set(MINHOOK_LIB minhook::minhook)
 endif()
+
 # --------------------------------------------------------------
 
 # ----------------------- Cap'n Proto --------------------------
@@ -53,58 +54,62 @@ set(CAPNP_GEN_SRC "${CAPNP_OUT_DIR}/driver.capnp.c++")
 
 # Resolve capnp compiler path
 set(CAPNP_COMPILER capnp)
-if (TARGET CapnProto::capnp_tool)
+
+if(TARGET CapnProto::capnp_tool)
     set(CAPNP_COMPILER $<TARGET_FILE:CapnProto::capnp_tool>)
-elseif (DEFINED CAPNP_EXECUTABLE)
+elseif(DEFINED CAPNP_EXECUTABLE)
     set(CAPNP_COMPILER "${CAPNP_EXECUTABLE}")
 endif()
 
 # Set up the capnp compile command with PATH modification on Linux
 if(UNIX AND NOT APPLE)
-    if (TARGET CapnProto::capnp_tool)
+    if(TARGET CapnProto::capnp_tool)
         set(CAPNP_COMPILE_COMMAND ${CMAKE_COMMAND} -E env "PATH=$<TARGET_FILE_DIR:CapnProto::capnp_tool>:$ENV{PATH}" ${CAPNP_COMPILER} compile -o c++:. "driver.capnp")
-    elseif (DEFINED CAPNP_EXECUTABLE)
+    elseif(DEFINED CAPNP_EXECUTABLE)
         get_filename_component(CAPNP_DIR "${CAPNP_EXECUTABLE}" DIRECTORY)
         set(CAPNP_COMPILE_COMMAND ${CMAKE_COMMAND} -E env "PATH=${CAPNP_DIR}:$ENV{PATH}" ${CAPNP_COMPILER} compile -o c++:. "driver.capnp")
     else()
         set(CAPNP_COMPILE_COMMAND ${CAPNP_COMPILER} compile -o c++:. "driver.capnp")
     endif()
 else()
-    if (TARGET CapnProto::capnp_tool)
-        set(CAPNP_COMPILE_COMMAND ${CMAKE_COMMAND} -E env "PATH=$<TARGET_FILE_DIR:CapnProto::capnp_tool>;$ENV{PATH}" ${CAPNP_COMPILER} compile -o c++:. "driver.capnp")
-    elseif (DEFINED CAPNP_EXECUTABLE)
-        get_filename_component(CAPNP_DIR "${CAPNP_EXECUTABLE}" DIRECTORY)
-        set(CAPNP_COMPILE_COMMAND ${CMAKE_COMMAND} -E env "PATH=${CAPNP_DIR}:$ENV{PATH}" ${CAPNP_COMPILER} compile -o c++:. "driver.capnp")
-    else()
-        set(CAPNP_COMPILE_COMMAND ${CAPNP_COMPILER} compile -o c++:. "driver.capnp")
-    endif()
+    set(CAPNP_COMPILE_COMMAND ${CAPNP_COMPILER} compile -o c++:. "driver.capnp")
 endif()
 
-add_custom_command(
-    OUTPUT "${CAPNP_GEN_HDR}" "${CAPNP_GEN_SRC}"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${CAPNP_OUT_DIR}"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CAPNP_SCHEMA}" "${CAPNP_SCHEMA_COPY}"
-    COMMAND ${CAPNP_COMPILE_COMMAND}
-    DEPENDS "${CAPNP_SCHEMA}"
-    WORKING_DIRECTORY "${CAPNP_OUT_DIR}"
-    COMMENT "Generating Cap'n Proto C++ from driver.capnp"
-    VERBATIM
-)
+# Don't compile by default, use generated files dir
+if(DO_CAPNP_COMPILE)
+    add_custom_command(
+        OUTPUT "${CAPNP_GEN_HDR}" "${CAPNP_GEN_SRC}"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CAPNP_OUT_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CAPNP_SCHEMA}" "${CAPNP_SCHEMA_COPY}"
+        COMMAND ${CAPNP_COMPILE_COMMAND}
+        DEPENDS "${CAPNP_SCHEMA}"
+        WORKING_DIRECTORY "${CAPNP_OUT_DIR}"
+        COMMENT "Generating Cap'n Proto C++ from driver.capnp"
+        VERBATIM
+    )
+else()
+    set(CAPNP_OUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/generated_files")
+    set(CAPNP_SCHEMA_COPY "${CAPNP_OUT_DIR}/driver.capnp")
+    set(CAPNP_GEN_HDR "${CAPNP_OUT_DIR}/driver.capnp.h")
+    set(CAPNP_GEN_SRC "${CAPNP_OUT_DIR}/driver.capnp.c++")
+endif()
 
 # Group generated files for IDEs
 source_group(TREE "${CAPNP_OUT_DIR}" PREFIX "Generated Files" FILES "${CAPNP_GEN_SRC}" "${CAPNP_GEN_HDR}")
+
 # --------------------------------------------------------------
 
 # ----------------------- OpenVR (vendor) ----------------------
 set(OPENVR_ROOT "${CMAKE_CURRENT_LIST_DIR}/../vendor/openvr")
 set(OPENVR_INCLUDE_DIR "${OPENVR_ROOT}/headers")
 
-if (WIN32)
+if(WIN32)
     link_directories("${OPENVR_ROOT}/lib/win64")
     link_directories("${OPENVR_ROOT}/bin/win64")
 elseif(UNIX AND NOT APPLE)
     link_directories("${OPENVR_ROOT}/lib/linux64")
 endif()
+
 # --------------------------------------------------------------
 
 # -----------------------Main-----------------------------------
@@ -113,6 +118,7 @@ target_include_directories(${DRIVER_TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE
 
 set_property(TARGET ${DRIVER_TARGET_NAME} PROPERTY CXX_STANDARD 20)
 set_property(TARGET ${DRIVER_TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
+
 # --------------------------------------------------------------
 
 # ----------------------- Cap'n Proto --------------------------
@@ -125,6 +131,7 @@ add_dependencies(${DRIVER_TARGET_NAME} capnp_generated)
 
 target_sources(${DRIVER_TARGET_NAME} PRIVATE "${CAPNP_GEN_SRC}" "${CAPNP_GEN_HDR}")
 target_include_directories(${DRIVER_TARGET_NAME} PRIVATE "${CAPNP_OUT_DIR}")
+
 # --------------------------------------------------------------
 
 # ----------------------- OpenVR (vendor) ----------------------
@@ -132,15 +139,16 @@ target_link_libraries(${DRIVER_TARGET_NAME} PRIVATE openvr_api)
 target_include_directories(${DRIVER_TARGET_NAME} PRIVATE "${OPENVR_INCLUDE_DIR}")
 
 # Link MinHook after target exists
-if (WIN32 AND USE_HOOKS)
+if(WIN32 AND USE_HOOKS)
     target_link_libraries(${DRIVER_TARGET_NAME} PRIVATE ${MINHOOK_LIB})
 endif()
 
-if (UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE)
     set_target_properties(${DRIVER_TARGET_NAME} PROPERTIES
         BUILD_RPATH "$ORIGIN"
         INSTALL_RPATH "$ORIGIN")
 endif()
+
 # --------------------------------------------------------------
 
 # ----------------------- Packaging (Pack/00Amethyst) ---------
@@ -151,7 +159,7 @@ else()
     set(PACK_ROOT "${CMAKE_CURRENT_BINARY_DIR}/Pack/Amethyst")
 endif()
 
-if (WIN32)
+if(WIN32)
     set(PACK_BIN_DIR "${PACK_ROOT}/bin/win64")
 elseif(UNIX AND NOT APPLE)
     set(PACK_BIN_DIR "${PACK_ROOT}/bin/linux64")
@@ -174,9 +182,9 @@ add_custom_command(TARGET ${DRIVER_TARGET_NAME} POST_BUILD
 
 if(UNIX AND NOT APPLE)
     add_custom_command(TARGET ${DRIVER_TARGET_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-            "$<TARGET_FILE:${DRIVER_TARGET_NAME}>" 
-            "${PACK_BIN_DIR}/$<TARGET_FILE_BASE_NAME:${DRIVER_TARGET_NAME}>$<TARGET_FILE_SUFFIX:${DRIVER_TARGET_NAME}>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:${DRIVER_TARGET_NAME}>"
+        "${PACK_BIN_DIR}/$<TARGET_FILE_BASE_NAME:${DRIVER_TARGET_NAME}>$<TARGET_FILE_SUFFIX:${DRIVER_TARGET_NAME}>"
         COMMENT "Copying driver library without lib prefix"
         VERBATIM
     )
@@ -187,5 +195,5 @@ else()
         VERBATIM
     )
 endif()
-# --------------------------------------------------------------
 
+# --------------------------------------------------------------
