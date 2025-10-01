@@ -10,16 +10,12 @@ namespace plugin_OpenVR.Utils;
 [SuppressMessage("ReSharper", "CollectionNeverUpdated.Global")]
 internal class OpenVrPaths
 {
-#if WINDOWS
-    public static readonly string Path =
+    public static string Path => OperatingSystem.IsWindows() ?
         Environment.ExpandEnvironmentVariables(System.IO.Path.Combine(
-            "%LocalAppData%", "openvr", "openvrpaths.vrpath"));
-#else
-    public static readonly string Path =
+            "%LocalAppData%", "openvr", "openvrpaths.vrpath")) :
         System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".config", "openvr", "openvrpaths.vrpath");
-#endif
 
     public static OpenVrPaths Read()
     {
@@ -60,11 +56,13 @@ internal class OpenVrPaths
 #pragma warning restore 0649
 }
 
-#if WINDOWS
 public static class PathUtils
 {
-    public static string GetShortName(string sLongFileName)
+    private static string GetShortName(string sLongFileName)
     {
+        if (!OperatingSystem.IsWindows())
+            return sLongFileName;
+
         var buffer = new StringBuilder(259);
         if (GetShortPathName(sLongFileName, buffer, buffer.Capacity) == 0)
             throw new System.ComponentModel.Win32Exception();
@@ -79,6 +77,9 @@ public static class PathUtils
     {
         try
         {
+            if (!OperatingSystem.IsWindows())
+                return path;
+
             var result = GetShortName(path);
             return string.IsNullOrEmpty(result) ? path : result;
         }
@@ -88,17 +89,3 @@ public static class PathUtils
         }
     }
 }
-#else
-public static class PathUtils
-{
-    public static string GetShortName(string sLongFileName)
-    {
-        return sLongFileName;
-    }
-
-    public static string ShortPath(this string path)
-    {
-        return path;
-    }
-}
-#endif

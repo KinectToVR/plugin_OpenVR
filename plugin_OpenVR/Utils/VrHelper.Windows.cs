@@ -3,13 +3,14 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Security.Principal;
 using System.Threading;
 using Microsoft.Win32;
 
 namespace plugin_OpenVR.Utils;
 
-#if WINDOWS
+[SupportedOSPlatform("windows")]
 internal class VrHelperWindows : IVrHelperPlatform
 {
     public ((bool SteamExists, bool VrSettingsExist, bool CopiedDriverExists) Exists,
@@ -175,4 +176,3 @@ internal class VrHelperWindows : IVrHelperPlatform
         QueryLimitedInformation = 0x00001000
     }
 }
-#endif

@@ -1,7 +1,17 @@
 {
-  "version": "1.0.0.2",
-  "display_name": "SteamVR",
-  "download_": "plugin_OpenVR.zip",
-  "changelog": "Better path handling for SteamVR",
-  "guid": "K2VRTEAM-AME2-APII-SNDP-SENDPTOPENVR"
+  "name": "SteamVR",
+  "description": "Ame2 plugin for SteamVR, including support for OpenVR-compatible devices.",
+  "guid": "K2VRTEAM-AME2-APII-SNDP-SENDPTOPENVR",
+  "type": "service",
+  "author": "K2VR Team",
+  "artifacts": [
+    {
+      "version": "2.0.0.0",
+      "contract": "2.0.0.0",
+      "platform": "any",
+      "name": "SteamVR",
+      "download": "plugin_OpenVR.zip",
+      "changelog": "Initial release of the OpenVR plugin."
+    }
+  ]
 }

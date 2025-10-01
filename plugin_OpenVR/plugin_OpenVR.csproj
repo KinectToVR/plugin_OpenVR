@@ -2,7 +2,6 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0</TargetFrameworks>
     <RootNamespace>plugin_OpenVR</RootNamespace>
-    <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
     <PublishTrimmed>false</PublishTrimmed>
     <Platforms>x64</Platforms>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
@@ -10,13 +9,6 @@
     <LangVersion>latest</LangVersion>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <WarningsAsErrors>CA1416</WarningsAsErrors>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(RuntimeIdentifier)'=='win-x64' or '$(RuntimeIdentifier)'=='win-x86'">
-    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
-    <TargetPlatformVersion>10.0.22621.0</TargetPlatformVersion>
-    <TargetPlatformIdentifier>Windows</TargetPlatformIdentifier>
-    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -86,26 +78,12 @@
 
   <ItemGroup>
     <!-- Windows x64 -->
-    <Content Include="..\vendor\openvr\bin\win64\openvr_api.dll" Link="openvr_api.dll"
-             Condition="'$(RuntimeIdentifier)'=='win-x64'">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-
-    <!-- Windows x86 -->
-    <Content Include="..\vendor\openvr\bin\win32\openvr_api.dll" Link="openvr_api.dll"
-             Condition="'$(RuntimeIdentifier)'=='win-x86'">
+    <Content Include="..\vendor\openvr\bin\win64\openvr_api.dll" Link="openvr_api.dll" Visible="False">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
 
     <!-- Linux x64 -->
-    <Content Include="..\vendor\openvr\bin\linux64\libopenvr_api.so" Link="libopenvr_api.so"
-             Condition="'$(RuntimeIdentifier)'=='linux-x64'">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-
-    <!-- Linux x86 -->
-    <Content Include="..\vendor\openvr\bin\linux32\libopenvr_api.so" Link="libopenvr_api.so"
-             Condition="'$(RuntimeIdentifier)'=='linux-x86'">
+    <Content Include="..\vendor\openvr\bin\linux64\libopenvr_api.so" Link="libopenvr_api.so" Visible="False">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
