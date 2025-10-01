@@ -99,7 +99,7 @@ jobs:
           if-no-files-found: error
 
   package-all:
-    name: Package plugin + all drivers (single zip)
+    name: Package plugin
     needs: build-driver
     runs-on: windows-latest
     steps:
@@ -115,32 +115,19 @@ jobs:
           path: drivers
           merge-multiple: true
 
-      - name: Merge driver outputs into out/build
-        shell: pwsh
-        run: |
-          $presets = @('x64-release','x64-release-nohooks','linux-x64-release')
-          foreach ($p in $presets) {
-            $src = Join-Path 'drivers' 'out/build' $p
-            if (Test-Path $src) {
-              $dst = Join-Path 'out/build' $p
-              New-Item -ItemType Directory -Force -Path $dst | Out-Null
-              Copy-Item -Recurse -Force (Join-Path $src '*') $dst
-            }
-          }
-
       - name: Set up .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: "10.0.x"
 
       - name: Restore and build (publish)
         run: dotnet publish /p:Configuration=Release /p:TargetFramework=net8.0 /p:PublishProfile=FolderProfile
-      
+
       - name: Pack published files
         run: |
           cd plugin_OpenVR/bin/Release/publish
           7z a plugin_OpenVR.zip *
-          
+
       - name: Upload plugin artifact
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
@@ -151,3 +138,9 @@ jobs:
           files: |
             ./plugin_OpenVR/bin/Release/publish/plugin_OpenVR.zip
             ./external/manifest.json
+
+      - uses: geekyeggo/delete-artifact@v5
+        with:
+          failOnError: false
+          name: |
+            driver_*
