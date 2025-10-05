@@ -39,6 +39,9 @@
     <Content Include="Assets\**">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Strings\**">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Compile Include="..\vendor\openvr\headers\openvr_api.cs" Link="vendor\openvr_api.cs">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Compile>

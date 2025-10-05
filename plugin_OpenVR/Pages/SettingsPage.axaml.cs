@@ -258,7 +258,7 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
 
             // Copy the icon
             var icon = new FileInfo(Path.Join(
-                Directory.GetParent(Environment.ProcessPath!)!.FullName, "Assets", "ktvr.png"));
+                Directory.GetParent(Environment.ProcessPath!)!.FullName, "Assets", "Visuals", "ktvr.png"));
 
             if (icon.Exists)
                 icon.CopyTo(Path.Join(Host.PathHelper.LocalFolder.FullName, DataParent.DriverFolderName, "ktvr.png"), true);
