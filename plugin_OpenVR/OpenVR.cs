@@ -673,7 +673,7 @@ public class SteamVR : IServiceEndpoint
             await Dispatcher.InvokeAsync(() =>
             {
                 foreach (var trackerBase in enumTrackerBases.ToList())
-                    DriverService.SetTrackerState(trackerBase.ComTracker(IsStandableSupportEnabled)).Wait(100);
+                    DriverService.SetTrackerState(trackerBase.ComTracker(IsStandableSupportEnabled)).Wait(0);
             }).ConfigureAwait(false);
 
             return wantReply ? enumTrackerBases.Select(x => (x, true)) : null;
@@ -701,7 +701,7 @@ public class SteamVR : IServiceEndpoint
             await Dispatcher.InvokeAsync(() =>
             {
                 foreach (var trackerBase in enumTrackerBases.ToList())
-                    DriverService.UpdateTracker(trackerBase.ComTracker(IsStandableSupportEnabled)).Wait(100);
+                    DriverService.UpdateTracker(trackerBase.ComTracker(IsStandableSupportEnabled)).Wait(0);
             }).ConfigureAwait(false);
 
             return wantReply ? enumTrackerBases.Select(x => (x, true)) : null;
