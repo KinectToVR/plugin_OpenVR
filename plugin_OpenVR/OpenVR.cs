@@ -88,7 +88,6 @@ public class SteamVR : IServiceEndpoint
 
     private Driver.IIDriverService DriverService { get; set; }
     private Exception ServerDriverException { get; set; }
-    private bool ServerDriverPresent => ServiceStatus == 0;
 
     [Import(typeof(IAmethystHost))] public IAmethystHost Host { get; set; }
 
@@ -292,7 +291,7 @@ public class SteamVR : IServiceEndpoint
     public Dictionary<TrackerType, SortedSet<IKeyInputAction>> SupportedInputActions =>
         Host is not null && (Host.IsTrackerEnabled(TrackerType.TrackerLeftHand) ||
                              Host.IsTrackerEnabled(TrackerType.TrackerRightHand)) ?
-            _supportedInputActions :
+            (OperatingSystem.IsWindows() ? _supportedInputActions : []) :
             [];
 
     public SortedSet<TrackerType> AdditionalSupportedTrackerTypes =>
@@ -310,7 +309,9 @@ public class SteamVR : IServiceEndpoint
         TrackerType.TrackerChest,
         TrackerType.TrackerCamera,
         TrackerType.TrackerKeyboard,
-        TrackerType.TrackerHead,
+        OperatingSystem.IsWindows() ?
+            TrackerType.TrackerHead : // Emulation support
+            TrackerType.TrackerWaist, // Disabled on linux
         TrackerType.TrackerLeftHand,
         TrackerType.TrackerRightHand
     ];
@@ -1377,5 +1378,10 @@ public static class OvrExtensions
         q.Y = MathF.CopySign(q.Y, mat.m2 - mat.m8);
         q.Z = MathF.CopySign(q.Z, mat.m4 - mat.m1);
         return q; // Extracted, fixed ovr quaternion!
+    }
+
+    public static void ShowDialog(this IAmethystHost host, Control control)
+    {
+        host?.GetType()?.GetMethod("ShowDialog")?.Invoke(host, [control]);
     }
 }

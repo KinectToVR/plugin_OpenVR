@@ -25,68 +25,11 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         InitializeComponent();
     }
 
-    private bool _listViewChangeBlock = false;
-    public bool IsAddingNewAction { get; set; }
-
-    public bool IsAddingNewActionInverse
-    {
-        get => !IsAddingNewAction;
-    }
-
     public IAmethystHost Host { get; set; }
     public SteamVR DataParent { get; set; }
-    public InputAction TreeSelectedAction { get; set; }
+    private ActionsManager Manager { get; set; }
 
-    public string SelectedActionName
-    {
-        get => IsAddingNewAction && TreeSelectedAction is not null ?
-            NewActionName :
-            TreeSelectedAction?.NameLocalized ?? GetString("/InputActions/Title/NoSelection");
-        set
-        {
-            if (!IsAddingNewAction || TreeSelectedAction is null) return;
-            NewActionName = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public string SelectedActionDescription
-    {
-        get => TreeSelectedAction?.Name ?? string.Empty;
-    }
-
-    public bool SelectedActionValid
-    {
-        get => TreeSelectedAction?.Valid ?? false;
-    }
-
-    public bool SelectedActionInvalid
-    {
-        get => !SelectedActionValid;
-    }
-
-    public bool ActionValid
-    {
-        get => TreeSelectedAction is not null && (!IsAddingNewAction || !string.IsNullOrEmpty(SelectedActionName));
-    }
-
-    public string NewActionName { get; set; }
     public bool PageLoaded { get; set; } = false;
-
-    public IEnumerable<InputAction> CustomActions
-    {
-        get => DataParent?.VrInput?.RegisteredActions?.Actions?.Where(x => x?.Custom ?? false) ?? [];
-    }
-
-    public string SelectedActionCode
-    {
-        get => TreeSelectedAction?.Code ?? string.Empty;
-        set
-        {
-            if (TreeSelectedAction is null) return;
-            TreeSelectedAction.Code = value;
-        }
-    }
 
     public bool IsStandableSupportEnabled
     {
@@ -99,112 +42,6 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
             if (DataParent is null) return;
             DataParent.IsStandableSupportEnabled = value;
         }
-    }
-
-    private string GetString(string key)
-    {
-        return Host?.RequestLocalizedString(key) ?? key;
-    }
-
-    private void ActionFailedFlyout_OnOpening(object sender, EventArgs e)
-    {
-        Host?.PlayAppSound(SoundType.Show);
-    }
-
-    private void ActionFailedFlyout_OnClosing(object o, CancelEventArgs cancelEventArgs)
-    {
-        Host?.PlayAppSound(SoundType.Hide);
-    }
-
-    private void ActionsFlyout_OnOpening(object sender, EventArgs e)
-    {
-        Host?.PlayAppSound(SoundType.Show);
-        ReloadActions();
-    }
-
-    private void ReloadActions()
-    {
-        TreeSelectedAction = null;
-        IsAddingNewAction = !CustomActions.Any();
-        if (IsAddingNewAction)
-        {
-            TreeSelectedAction = new InputAction(
-                $"/actions/default/in/{Guid.NewGuid().ToString().ToUpper()}",
-                "boolean", "optional");
-
-            NewActionName = string.Empty;
-        }
-
-        ActionsListView.SelectionMode = SelectionMode.Toggle;
-        ActionsListView.SelectionMode = SelectionMode.Single;
-
-        OnPropertyChanged();
-    }
-
-    private void ActionsFlyout_OnClosing(object o, CancelEventArgs cancelEventArgs)
-    {
-        Host?.PlayAppSound(SoundType.Hide);
-    }
-
-    private async void ActionTestButton_OnClick(object o, RoutedEventArgs routedEventArgs)
-    {
-        try
-        {
-            if (!TestResultsBox.IsLoaded || TreeSelectedAction is null) return;
-            TestResultsBox.Text = await TreeSelectedAction.Invoke(null);
-        }
-        catch (Exception)
-        {
-            // ignored
-        }
-    }
-
-    private void RemoveAction_OnClick(object sender, RoutedEventArgs e)
-    {
-        if (!TestResultsBox.IsLoaded || TreeSelectedAction is null) return;
-        DataParent.VrInput.RegisteredActions.Actions.Remove(TreeSelectedAction);
-        DataParent.VrInput.SaveSettings();
-
-        TreeSelectedAction = null;
-        ActionRemoveSplitButton?.Flyout?.Hide();
-
-        OnPropertyChanged();
-    }
-
-    private void ActionsListView_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (sender is not ListBox view || _listViewChangeBlock) return;
-        if (e.AddedItems.Count < 1 || e.AddedItems[0] is not InputAction action)
-        {
-            Host?.PlayAppSound(SoundType.Focus);
-            return; // Give up now...
-        }
-
-        var shouldAnimate = TreeSelectedAction != action;
-        TreeSelectedAction = action;
-        IsAddingNewAction = false;
-        OnPropertyChanged();
-
-        if (!shouldAnimate) return;
-        Host?.PlayAppSound(SoundType.Invoke);
-    }
-
-    private void NewActionItem_OnClick(object sender, RoutedEventArgs e)
-    {
-        if (!ActionsListView.IsLoaded) return;
-
-        ActionsListView.SelectionMode = SelectionMode.Toggle;
-        ActionsListView.SelectionMode = SelectionMode.Single;
-
-        TreeSelectedAction = new InputAction(
-            $"/actions/default/in/{Guid.NewGuid().ToString().ToUpper()}",
-            "boolean", "optional");
-
-        NewActionName = string.Empty;
-        IsAddingNewAction = true;
-
-        Host?.PlayAppSound(SoundType.Invoke);
-        OnPropertyChanged();
     }
 
     private void ReManifestButton_OnClick(object sender, RoutedEventArgs e)
@@ -627,40 +464,6 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
             Host?.RequestLocalizedString("/CrashHandler/ReRegister/Finished"), "", "");
     }
 
-    public new event PropertyChangedEventHandler PropertyChanged;
-
-    private void OnPropertyChanged(string propertyName = null)
-    {
-        return; // TODO
-
-        _listViewChangeBlock = true;
-        var itemBackup = ActionsListView.SelectedItem;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
-        if (ActionsListView.Items.Contains(itemBackup))
-            ActionsListView.SelectedItem = itemBackup;
-
-        _listViewChangeBlock = false;
-    }
-
-    private void AddNewAction_OnClick(object sender, RoutedEventArgs e)
-    {
-        if (!((sender as Button)?.IsLoaded ?? false)) return;
-
-        DataParent.VrInput.RegisteredActions.Actions.Add(TreeSelectedAction);
-        TreeSelectedAction.NameLocalized = NewActionName;
-        DataParent.VrInput.SaveSettings();
-        DataParent.VrInput.InitInputActions();
-
-        IsAddingNewAction = false;
-        Host?.PlayAppSound(SoundType.Invoke);
-
-        ReloadActions();
-
-        if (ActionsListView.Items.Any())
-            ActionsListView.SelectedItem = ActionsListView.Items[^1];
-    }
-
     private void SettingsPage_OnLoaded(object sender, RoutedEventArgs routedEventArgs)
     {
         PageLoaded = true;
@@ -668,71 +471,15 @@ public sealed partial class SettingsPage : UserControl, INotifyPropertyChanged
         if (StandableToggleSwitch is not null)
             StandableToggleSwitch.IsChecked = IsStandableSupportEnabled;
     }
-
-    // Strings
-
-    public string SettingsTogglesStandable
+    
+    private void ManagerButton_OnClick(object sender, RoutedEventArgs e)
     {
-        get => Host?.RequestLocalizedString("/Settings/Toggles/Standable") ?? string.Empty;
-    }
-
-    public string SettingsTogglesStandableComment
-    {
-        get => Host?.RequestLocalizedString("/Settings/Toggles/Standable/Comment") ?? string.Empty;
-    }
-
-    public string InputActionsButtonsView
-    {
-        get => Host?.RequestLocalizedString("/InputActions/Buttons/View") ?? string.Empty;
-    }
-
-    public string InputActionsPickerOptionsNew
-    {
-        get => Host?.RequestLocalizedString("/InputActions/Picker/Options/New") ?? string.Empty;
-    }
-
-    public string SettingsPagePlaceholdersNewAction
-    {
-        get => Host?.RequestLocalizedString("/SettingsPage/Placeholders/NewAction") ?? string.Empty;
-    }
-
-    public string InputActionsButtonsTest
-    {
-        get => Host?.RequestLocalizedString("/InputActions/Buttons/Test") ?? string.Empty;
-    }
-
-    public string InputActionsButtonsRemove
-    {
-        get => Host?.RequestLocalizedString("/InputActions/Buttons/Remove") ?? string.Empty;
-    }
-
-    public string InputActionsButtonsAdd
-    {
-        get => Host?.RequestLocalizedString("/InputActions/Buttons/Add") ?? string.Empty;
-    }
-
-    public string InputActionsPickerNoSelection
-    {
-        get => Host?.RequestLocalizedString("/InputActions/Picker/NoSelection") ?? string.Empty;
-    }
-
-    public string InputActionsCodeInput
-    {
-        get => Host?.RequestLocalizedString("/InputActions/Code/Input") ?? string.Empty;
-    }
-
-    public string InputActionsCodeTest
-    {
-        get => Host?.RequestLocalizedString("/InputActions/Code/Test") ?? string.Empty;
-    }
-
-    public string SettingsPageButtonsReRegister
-    {
-        get => Host?.RequestLocalizedString("/SettingsPage/Buttons/ReRegister") ?? string.Empty;
-    }
-
-    public string SettingsPageButtonsReManifest
-    {
-        get => Host?.RequestLocalizedString("/SettingsPage/Buttons/ReManifest") ?? string.Empty;
+        Manager ??= new ActionsManager
+        {
+            Host = Host,
+            DataParent = DataParent
+        };
+        
+        Host?.ShowDialog(Manager);
     }
 }

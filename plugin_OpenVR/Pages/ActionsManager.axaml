@@ -1,0 +1,127 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:utils="clr-namespace:plugin_OpenVR.Utils"
+             xmlns:pluginOpenVr="clr-namespace:plugin_OpenVR"
+             xmlns:controls="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
+             x:Class="plugin_OpenVR.Pages.ActionsManager"
+             MaxWidth="790" MinWidth="790" MaxHeight="475" MinHeight="475"
+             x:Name="Root">
+
+    <!--Inner grid-->
+    <Grid VerticalAlignment="Stretch" MaxWidth="790" MinWidth="790"
+          MaxHeight="475" MinHeight="475" Margin="20"
+          ColumnDefinitions="170,40,*" x:Name="OuterGrid">
+
+        <!--The selector part-->
+        <Border Grid.Column="0" Margin="-20" Classes="cardSingle" Padding="30">
+            <Grid RowDefinitions="*,Auto">
+                <ScrollViewer HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                              VerticalScrollBarVisibility="Visible" Grid.Row="0"
+                              Padding="20,0, 13, 0" Margin="-20,0, -15, 0">
+                    <ListBox x:Name="ActionsListView"
+                             SelectionChanged="ActionsListView_OnSelectionChanged"
+                             ItemsSource="{Binding #Root.CustomActions, Mode=OneWay}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="pluginOpenVr:InputAction">
+                                <TextBlock Text="{Binding NameLocalized}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </ScrollViewer>
+                
+                <StackPanel Orientation="Vertical" Grid.Row="1">
+                    <Button Height="36" Click="NewActionItem_OnClick"
+                            BorderThickness="0" Background="Transparent">
+                        <Grid ColumnDefinitions="Auto, *" ColumnSpacing="6">
+                            <Viewbox MaxHeight="16" MaxWidth="16">
+                                <controls:SymbolIcon Symbol="Add" />
+                            </Viewbox>
+                            <TextBlock Text="{utils:Translate '/InputActions/Picker/Options/New'}"
+                                       Grid.Column="1" VerticalAlignment="Center" FontSize="15" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!--The preview part-->
+        <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*"
+              Margin="-8,15,15,15" x:Name="PreviewGrid">
+            <TextBlock FontWeight="SemiBold"
+                       Text="{Binding #Root.SelectedActionName, Mode=OneWay}"
+                       IsVisible="{Binding #Root.IsAddingNewActionInverse, Mode=OneWay}"
+                       VerticalAlignment="Top" HorizontalAlignment="Left" MaxWidth="370"
+                       FontSize="26" Margin="0,-7,0,0" TextTrimming="CharacterEllipsis" />
+            
+            <TextBox FontWeight="SemiBold"
+                     Text="{Binding #Root.SelectedActionName, Mode=TwoWay}"
+                     IsVisible="{Binding #Root.IsAddingNewAction, Mode=OneWay}" Grid.Row="0"
+                     Watermark="{utils:Translate '/SettingsPage/Placeholders/NewAction'}"
+                     VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="20"
+                     Margin="0,-5,0,5" Background="Transparent" MaxWidth="370" MinWidth="370"
+                     AcceptsReturn="False" TextWrapping="NoWrap" />
+            
+            <SplitButton Click="ActionTestButton_OnClick" x:Name="ActionRemoveSplitButton"
+                         IsEnabled="{Binding #Root.ActionValid, Mode=OneWay}"
+                         IsVisible="{Binding #Root.IsAddingNewActionInverse, Mode=OneWay}"
+                         Content="{utils:Translate '/InputActions/Buttons/Test'}"
+                         HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="0"
+                         Margin="0,-2,0,0">
+                <SplitButton.Flyout>
+                    <Flyout Placement="Bottom">
+                        <Button Click="RemoveAction_OnClick"
+                                IsEnabled="{Binding #Root.ActionValid, Mode=OneWay}"
+                                Content="{utils:Translate '/InputActions/Buttons/Remove'}" />
+                    </Flyout>
+                </SplitButton.Flyout>
+            </SplitButton>
+            
+            <Button Classes="accent" Click="AddNewAction_OnClick"
+                    IsEnabled="{Binding #Root.ActionValid, Mode=OneWay}"
+                    IsVisible="{Binding #Root.IsAddingNewAction, Mode=OneWay}"
+                    Content="{utils:Translate '/InputActions/Buttons/Add'}"
+                    HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="0"
+                    Margin="0,-2,0,0" />
+            
+            <!--"Select to preview" grid-->
+            <Grid Grid.Row="2" Opacity="0.75"
+                  IsVisible="{Binding #Root.SelectedActionInvalid, Mode=OneWay}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="8*" MinWidth="250" MaxWidth="500" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="1" Orientation="Vertical" VerticalAlignment="Center"
+                            HorizontalAlignment="Center" Margin="0,-35,0,0">
+                    <controls:FontIcon FontSize="120" Margin="0,0,0,25" Glyph="&#xE707;" />
+                    <TextBlock HorizontalAlignment="Center" TextWrapping="Wrap" FontSize="14"
+                               TextTrimming="CharacterEllipsis"
+                               Text="{utils:Translate '/InputActions/Picker/NoSelection'}" />
+                </StackPanel>
+            </Grid>
+            
+            <!--Actual preview data-->
+            <Grid Grid.Row="2" RowDefinitions="Auto, *, Auto" RowSpacing="12"
+                  IsVisible="{Binding #Root.SelectedActionValid, Mode=OneWay}"
+                  Opacity="{Binding #Root.SelectedActionValidOpacity, Mode=OneWay}">
+                <Grid.Transitions>
+                    <Transitions>
+                        <DoubleTransition Property="Opacity" Duration="0:0:0.3"
+                                          Easing="CircularEaseInOut" />
+                    </Transitions>
+                </Grid.Transitions>
+
+                <TextBlock HorizontalAlignment="Left" TextWrapping="Wrap" FontSize="14"
+                           Grid.Row="0" TextAlignment="Left" Margin="2,0,0,0"
+                           Text="{Binding #Root.SelectedActionDescription, Mode=OneWay}"
+                           Opacity="0.75" />
+                <TextBox Grid.Row="1" Text="{Binding #Root.SelectedActionCode, Mode=TwoWay}"
+                         VerticalAlignment="Stretch" AcceptsReturn="True" TextWrapping="Wrap"
+                         Watermark="{utils:Translate '/InputActions/Code/Input'}" />
+                <TextBox Grid.Row="2" x:Name="TestResultsBox" IsReadOnly="True"
+                         IsEnabled="{Binding #Root.IsAddingNewActionInverse, Mode=OneWay}"
+                         Text="{utils:Translate '/InputActions/Code/Test'}" />
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>
