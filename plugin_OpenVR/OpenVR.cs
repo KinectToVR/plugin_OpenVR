@@ -397,7 +397,7 @@ public class SteamVR : IServiceEndpoint
         }
     }
 
-    public void OnLoad()
+    public Task OnLoad()
     {
         VrInput ??= new SteamEvrInput(Host, this);
         VrInputStatic = VrInput;
@@ -411,9 +411,11 @@ public class SteamVR : IServiceEndpoint
 
         IsStandableSupportEnabled = Host?.PluginSettings
             .GetSetting("StandableSupport", false) ?? false;
+
+        return Task.CompletedTask;
     }
 
-    public int Initialize()
+    public async Task Initialize()
     {
         // Reset the status
         ServiceStatus = 0;
@@ -421,11 +423,11 @@ public class SteamVR : IServiceEndpoint
         // Check if Amethyst is running as admin
         // Check if OpenVR is running as admin
         // Initialize OpenVR if we're ready to go
-        if (VrHelper.IsCurrentProcessElevated() !=
-            VrHelper.IsOpenVrElevated() || !OpenVrStartup())
+        if (VrHelper.IsCurrentProcessElevated() != VrHelper.IsOpenVrElevated() ||
+            !await Task.Run(OpenVrStartup)) // Wait for the system to initialize
         {
             ServiceStatus = 1;
-            return 1;
+            return;
         }
 
         // Install the manifest
@@ -435,14 +437,10 @@ public class SteamVR : IServiceEndpoint
         UpdateBindingTexts();
 
         // Startup input actions
-        var serviceStatus = 0;
-        if (!EvrActionsStartup()) serviceStatus = 2;
+        EvrActionsStartup();
 
         // Connect to the server driver
-        K2ServerDriverRefresh();
-
-        // Return the binding error if the driver is fine
-        return ServiceStatus == 0 ? serviceStatus : ServiceStatus;
+        await K2ServerDriverRefresh();
     }
 
     public void Heartbeat()
@@ -487,7 +485,7 @@ public class SteamVR : IServiceEndpoint
         }
     }
 
-    public void Shutdown()
+    public Task Shutdown()
     {
         lock (InitLock)
         lock (Host.UpdateThreadLock)
@@ -500,6 +498,8 @@ public class SteamVR : IServiceEndpoint
             // K2ServerDriverRefresh(); // TODO
             Host?.RefreshStatusInterface();
         }
+
+        return Task.CompletedTask;
     }
 
     public void DisplayToast((string Title, string Text) message)
@@ -764,7 +764,7 @@ public class SteamVR : IServiceEndpoint
             UpdateBindingTexts();
 
             // Refresh the driver, just in case
-            K2ServerDriverRefresh();
+            await K2ServerDriverRefresh();
 
             // Driver client sanity check: return empty or null if not valid
             if (!Initialized || OpenVR.System is null || DriverService is null ||
@@ -936,9 +936,9 @@ public class SteamVR : IServiceEndpoint
          */
     }
 
-    private void K2ServerDriverRefresh()
+    private async Task K2ServerDriverRefresh()
     {
-        ServiceStatus = CheckK2ServerStatusAsync().Result;
+        ServiceStatus = await CheckK2ServerStatusAsync();
 
         // Request a quick status refresh
         Host?.RefreshStatusInterface();
